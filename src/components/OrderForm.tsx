@@ -4,11 +4,13 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Save, Loader2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import MemberSelect from './MemberSelect';
 
 // Interface สำหรับข้อมูลฟอร์ม
 interface OrderFormData {
     customerName: string;
     phone: string;
+    lineUserId?: string; // Added for LINE notifications
     orderDate: string;
     dressName: string;
     color: string;
@@ -29,6 +31,16 @@ interface OrderFormData {
     };
     deliveryAddress: string;
     notes: string;
+}
+
+interface Member {
+    _id: string;
+    lineUserId: string;
+    displayName: string;
+    pictureUrl?: string;
+    realName: string;
+    phone: string;
+    address?: string;
 }
 
 interface OrderFormProps {
@@ -67,9 +79,29 @@ export default function OrderForm({ initialData, orderId, isEdit = false }: Orde
     const [formData, setFormData] = useState<OrderFormData>(initialData || defaultFormData);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const [selectedMember, setSelectedMember] = useState<Member | null>(null);
 
     // คำนวณยอดคงเหลือ
     const balance = (Number(formData.price) || 0) - (Number(formData.deposit) || 0);
+
+    // Handle member selection - auto-fill customer info
+    const handleMemberSelect = (member: Member | null) => {
+        setSelectedMember(member);
+        if (member) {
+            setFormData(prev => ({
+                ...prev,
+                customerName: member.realName,
+                phone: member.phone,
+                deliveryAddress: member.address || prev.deliveryAddress,
+                lineUserId: member.lineUserId,
+            }));
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                lineUserId: undefined,
+            }));
+        }
+    };
 
     // Handle input change สำหรับ field ปกติ
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -169,6 +201,17 @@ export default function OrderForm({ initialData, orderId, isEdit = false }: Orde
             {error && (
                 <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-6">
                     {error}
+                </div>
+            )}
+
+            {/* Member Selection - เลือกลูกค้าสมาชิก LINE */}
+            {!isEdit && (
+                <div className="mb-6 animate-fade-in">
+                    <label className="form-label mb-2 block">เชื่อมต่อลูกค้า LINE (สำหรับส่งแจ้งเตือนอัตโนมัติ)</label>
+                    <MemberSelect
+                        onSelect={handleMemberSelect}
+                        selectedMember={selectedMember}
+                    />
                 </div>
             )}
 
