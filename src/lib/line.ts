@@ -65,7 +65,7 @@ export async function sendWelcomeMessage(to: string, customerName: string) {
 // 2. Order Confirmation (ใบเสร็จออนไลน์ - สวยๆ หลากสี)
 export async function sendOrderConfirmation(to: string, order: IOrder) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.razaan.co';
-    const orderUrl = `${appUrl}/orders/${order._id}`;
+    const orderUrl = `${appUrl}/receipt/${order._id}`; // Public receipt page
     const orderDate = new Date(order.orderDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
 
     const flexMessage = {
@@ -192,7 +192,7 @@ export async function sendOrderConfirmation(to: string, order: IOrder) {
 // 3. Status Update (แจ้งเตือนสถานะ - สวยๆ)
 export async function sendStatusUpdate(to: string, order: IOrder, status: string) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.razaan.co';
-    const orderUrl = `${appUrl}/orders/${order._id}`;
+    const orderUrl = `${appUrl}/receipt/${order._id}`; // Public receipt page
 
     const statusMap: Record<string, { label: string; color: string; bg: string; icon: string; desc: string }> = {
         confirmed: { label: 'ยืนยันออเดอร์', color: '#10B981', bg: '#D1FAE5', icon: '✅', desc: 'ร้านค้ายืนยันออเดอร์แล้ว' },
