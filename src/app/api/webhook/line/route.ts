@@ -46,6 +46,17 @@ export async function POST(req: NextRequest) {
             const text = event.message?.text?.toLowerCase() || '';
             const userId = event.source?.userId;
 
+            // ⭐ Log User ID เมื่อมีข้อความเข้ามา
+            if (userId) {
+                const profile = await getProfile(userId);
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('📩 ข้อความ LINE ใหม่!');
+                console.log(`👤 ชื่อ: ${profile.displayName}`);
+                console.log(`🆔 UserId: ${userId}`);
+                console.log(`💬 ข้อความ: ${text || '(ไม่ใช่ข้อความ)'}`);
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            }
+
             // Trigger: follow / "สมัคร" / "ตัดชุด"
             if (event.type === 'follow' || text.includes('สมัคร') || text.includes('ตัดชุด')) {
                 const profile = await getProfile(userId);

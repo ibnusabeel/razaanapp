@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Order from '@/models/Order';
 import User from '@/models/User';
-import { sendOrderConfirmation, sendTailorNotification } from '@/lib/line';
+import { sendOrderConfirmation, sendTailorNotification, sendAdminNotification } from '@/lib/line';
 
 /**
  * GET /api/orders
@@ -100,6 +100,10 @@ export async function POST(request: NextRequest) {
             console.log('📤 Sending to tailor...');
             await sendTailorNotification(order);
         }
+
+        // ส่งแจ้งเตือนให้ Admin ทุกคน
+        console.log('📤 Notifying admins...');
+        await sendAdminNotification(order);
 
         return NextResponse.json({ success: true, data: order, message: 'บันทึกสำเร็จ' }, { status: 201 });
     } catch (error: unknown) {

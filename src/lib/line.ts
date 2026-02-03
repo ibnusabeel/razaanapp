@@ -2,6 +2,7 @@ import { IOrder } from '@/models/Order';
 
 const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN!;
 const LINE_TAILOR_USER_ID = process.env.LINE_TAILOR_USER_ID; // LINE ID ของช่างตัด
+const LINE_ADMIN_USER_IDS = process.env.LINE_ADMIN_USER_IDS?.split(',').filter(Boolean) || []; // LINE IDs ของ Admin ทั้งหมด
 
 // Helper to push message
 async function pushMessage(to: string, messages: any[]) {
@@ -297,4 +298,167 @@ export async function sendTailorNotification(order: IOrder) {
     };
 
     return await pushMessage(LINE_TAILOR_USER_ID, [flexMessage]);
+}
+
+// 5. Admin Notification (ส่งรายละเอียดออเดอร์ให้ Admin ทุกคน)
+export async function sendAdminNotification(order: IOrder) {
+    if (LINE_ADMIN_USER_IDS.length === 0) {
+        console.log('⚠️ No LINE_ADMIN_USER_IDS configured');
+        return false;
+    }
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.razaan.co';
+    const orderUrl = `${appUrl}/orders/${order._id}`;
+    const orderDate = new Date(order.orderDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+
+    const measurements = order.measurements || {};
+    const measurementText = [
+        measurements.shoulder ? `ไหล่ ${measurements.shoulder}"` : '',
+        measurements.chest ? `อก ${measurements.chest}"` : '',
+        measurements.waist ? `เอว ${measurements.waist}"` : '',
+        measurements.hips ? `สะโพก ${measurements.hips}"` : '',
+        measurements.totalLength ? `ยาว ${measurements.totalLength}"` : '',
+    ].filter(Boolean).join(' | ') || 'ไม่ระบุ';
+
+    const flexMessage = {
+        type: 'flex',
+        altText: `🔔 ออเดอร์ใหม่ ${order.orderNumber}: ${order.customerName}`,
+        contents: {
+            type: 'bubble',
+            size: 'giga',
+            styles: {
+                header: { backgroundColor: '#EC4899' }, // Pink
+                body: { backgroundColor: '#FDF2F8' },
+            },
+            header: {
+                type: 'box',
+                layout: 'vertical',
+                paddingAll: 'lg',
+                contents: [
+                    { type: 'text', text: '🔔 ออเดอร์ใหม่!', weight: 'bold', size: 'xl', color: '#ffffff', align: 'center' },
+                    { type: 'text', text: order.orderNumber || 'N/A', size: 'sm', color: '#ffffffcc', align: 'center', margin: 'xs' },
+                ],
+            },
+            body: {
+                type: 'box',
+                layout: 'vertical',
+                paddingAll: 'lg',
+                spacing: 'md',
+                contents: [
+                    // Customer Info
+                    {
+                        type: 'box', layout: 'vertical', spacing: 'xs',
+                        contents: [
+                            { type: 'text', text: '👤 ลูกค้า', size: 'xs', color: '#9B9A97', weight: 'bold' },
+                            { type: 'text', text: order.customerName, size: 'lg', weight: 'bold', color: '#1F2937' },
+                            { type: 'text', text: `📞 ${order.phone}`, size: 'sm', color: '#6B7280' },
+                        ]
+                    },
+                    { type: 'separator' },
+                    // Product Info
+                    {
+                        type: 'box', layout: 'vertical', spacing: 'xs',
+                        contents: [
+                            { type: 'text', text: '👗 รายการ', size: 'xs', color: '#9B9A97', weight: 'bold' },
+                            { type: 'text', text: order.dressName, size: 'md', weight: 'bold', color: '#1F2937' },
+                            {
+                                type: 'box', layout: 'horizontal', spacing: 'md',
+                                contents: [
+                                    { type: 'text', text: `🎨 ${order.color || '-'}`, size: 'sm', color: '#6B7280', flex: 1 },
+                                    { type: 'text', text: `📏 ${order.size || '-'}`, size: 'sm', color: '#6B7280', flex: 1 },
+                                ]
+                            },
+                        ]
+                    },
+                    { type: 'separator' },
+                    // Measurements
+                    {
+                        type: 'box', layout: 'vertical', spacing: 'xs',
+                        contents: [
+                            { type: 'text', text: '📐 สัดส่วน', size: 'xs', color: '#9B9A97', weight: 'bold' },
+                            { type: 'text', text: measurementText, size: 'sm', color: '#374151', wrap: true },
+                        ]
+                    },
+                    { type: 'separator' },
+                    // Payment Info
+                    {
+                        type: 'box', layout: 'vertical', spacing: 'sm',
+                        contents: [
+                            { type: 'text', text: '💰 การชำระเงิน', size: 'xs', color: '#9B9A97', weight: 'bold' },
+                            {
+                                type: 'box', layout: 'horizontal',
+                                contents: [
+                                    { type: 'text', text: 'ราคาเต็ม', size: 'sm', color: '#6B7280', flex: 1 },
+                                    { type: 'text', text: `฿${order.price?.toLocaleString() || 0}`, size: 'sm', color: '#1F2937', align: 'end', flex: 1, weight: 'bold' },
+                                ]
+                            },
+                            {
+                                type: 'box', layout: 'horizontal',
+                                contents: [
+                                    { type: 'text', text: 'มัดจำแล้ว', size: 'sm', color: '#10B981', flex: 1 },
+                                    { type: 'text', text: `฿${order.deposit?.toLocaleString() || 0}`, size: 'sm', color: '#10B981', align: 'end', flex: 1, weight: 'bold' },
+                                ]
+                            },
+                            {
+                                type: 'box', layout: 'horizontal',
+                                contents: [
+                                    { type: 'text', text: 'ค้างชำระ', size: 'md', color: '#EF4444', flex: 1, weight: 'bold' },
+                                    { type: 'text', text: `฿${order.balance?.toLocaleString() || 0}`, size: 'lg', color: '#EF4444', align: 'end', flex: 1, weight: 'bold' },
+                                ]
+                            },
+                        ]
+                    },
+                    // Notes
+                    ...(order.notes ? [
+                        { type: 'separator' } as any,
+                        {
+                            type: 'box', layout: 'vertical',
+                            contents: [
+                                { type: 'text', text: '📝 หมายเหตุ', size: 'xs', color: '#9B9A97', weight: 'bold' },
+                                { type: 'text', text: order.notes, size: 'sm', color: '#DC2626', wrap: true },
+                            ]
+                        }
+                    ] : []),
+                    // Delivery Address
+                    ...(order.deliveryAddress ? [
+                        { type: 'separator' } as any,
+                        {
+                            type: 'box', layout: 'vertical',
+                            contents: [
+                                { type: 'text', text: '📦 ที่อยู่จัดส่ง', size: 'xs', color: '#9B9A97', weight: 'bold' },
+                                { type: 'text', text: order.deliveryAddress, size: 'sm', color: '#374151', wrap: true },
+                            ]
+                        }
+                    ] : []),
+                ],
+            },
+            footer: {
+                type: 'box',
+                layout: 'vertical',
+                paddingAll: 'md',
+                contents: [
+                    {
+                        type: 'button',
+                        style: 'primary',
+                        color: '#7C3AED',
+                        height: 'sm',
+                        action: { type: 'uri', label: 'ดูรายละเอียดเพิ่มเติม', uri: orderUrl },
+                    },
+                    { type: 'text', text: `📅 ${orderDate}`, size: 'xxs', color: '#9B9A97', align: 'center', margin: 'sm' },
+                ],
+            },
+        },
+    };
+
+    console.log(`📤 Sending to ${LINE_ADMIN_USER_IDS.length} admins...`);
+
+    // ส่งให้ Admin ทุกคนพร้อมกัน
+    const results = await Promise.all(
+        LINE_ADMIN_USER_IDS.map(adminId => pushMessage(adminId.trim(), [flexMessage]))
+    );
+
+    const successCount = results.filter(Boolean).length;
+    console.log(`✅ Sent to ${successCount}/${LINE_ADMIN_USER_IDS.length} admins`);
+
+    return successCount > 0;
 }
