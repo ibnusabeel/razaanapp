@@ -55,6 +55,10 @@ const OrderSchema = new Schema<IOrder>(
       required: [true, 'กรุณากรอกเบอร์ติดต่อ'],
       trim: true,
     },
+    lineUserId: {
+      type: String,
+      trim: true,
+    },
 
     // ข้อมูลคำสั่งซื้อ
     orderDate: {
