@@ -8,6 +8,17 @@ export interface IUser extends Document {
     phone: string; // เบอร์โทร
     address: string; // ที่อยู่
     role: 'customer' | 'admin';
+    measurements?: {
+        shoulder: number;
+        chest: number;
+        waist: number;
+        armhole: number;
+        sleeveLength: number;
+        wrist: number;
+        upperArm: number;
+        hips: number;
+        totalLength: number;
+    };
     createdAt: Date;
     updatedAt: Date;
 }
