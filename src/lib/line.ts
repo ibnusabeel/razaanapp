@@ -1,12 +1,16 @@
 import { IOrder } from '@/models/Order';
-import QRCode from 'qrcode';
 
 const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN!;
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+const LINE_TAILOR_USER_ID = process.env.LINE_TAILOR_USER_ID; // LINE ID ของช่างตัด
 
 // Helper to push message
 async function pushMessage(to: string, messages: any[]) {
-    if (!LINE_CHANNEL_ACCESS_TOKEN) return;
+    if (!LINE_CHANNEL_ACCESS_TOKEN) {
+        console.error('❌ LINE_CHANNEL_ACCESS_TOKEN is not set!');
+        return false;
+    }
+
+    console.log('📤 Pushing message to:', to);
 
     try {
         const response = await fetch('https://api.line.me/v2/bot/message/push', {
@@ -20,265 +24,171 @@ async function pushMessage(to: string, messages: any[]) {
 
         if (!response.ok) {
             const error = await response.json();
-            console.error('❌ LINE API Error:', error);
+            console.error('❌ LINE API Error:', JSON.stringify(error));
+            return false;
         }
+
+        console.log('✅ Message pushed successfully!');
+        return true;
     } catch (error) {
         console.error('❌ Network Error:', error);
+        return false;
     }
 }
 
-// 1. Template: Welcome / Registration Success (Flex Message)
+// 1. Welcome Message (ลงทะเบียนสำเร็จ)
 export async function sendWelcomeMessage(to: string, customerName: string) {
-    console.log(`📤 Sending welcome message to: ${to}`);
-
     const flexMessage = {
         type: 'flex',
         altText: `ยินดีต้อนรับ ${customerName} สู่ Razaan`,
         contents: {
             type: 'bubble',
-            hero: {
-                type: 'image',
-                url: 'https://placehold.co/800x400/6B21A8/ffffff/png?text=Welcome+to+RAZAAN',
-                size: 'full',
-                aspectRatio: '20:13',
-                aspectMode: 'cover',
-            },
             body: {
                 type: 'box',
                 layout: 'vertical',
                 contents: [
-                    {
-                        type: 'text',
-                        text: '🎉 ยินดีต้อนรับ!',
-                        weight: 'bold',
-                        size: 'xl',
-                        color: '#6B21A8',
-                    },
-                    {
-                        type: 'text',
-                        text: `สวัสดีคุณ ${customerName}`,
-                        size: 'md',
-                        margin: 'md',
-                        color: '#333333',
-                    },
-                    {
-                        type: 'text',
-                        text: 'ขอบคุณที่ลงทะเบียนสมาชิก Razaan\nต่อจากนี้คุณจะได้รับแจ้งเตือนสถานะการสั่งตัดชุดผ่านทางนี้ได้ทันที',
-                        size: 'sm',
-                        color: '#666666',
-                        wrap: true,
-                        margin: 'md',
-                    },
+                    { type: 'text', text: '🎉 ยินดีต้อนรับ!', weight: 'bold', size: 'xl', color: '#6B21A8' },
+                    { type: 'text', text: `สวัสดีคุณ ${customerName}`, size: 'md', margin: 'md' },
+                    { type: 'text', text: 'คุณพร้อมสำหรับการตัดชุดแล้ว\nพนักงานจะทำการวัดตัวและบันทึกข้อมูลให้ค่ะ', size: 'sm', color: '#666666', wrap: true, margin: 'md' },
                 ],
             },
             footer: {
                 type: 'box',
                 layout: 'vertical',
-                contents: [
-                    {
-                        type: 'text',
-                        text: 'Razaan - Dignity Among Women',
-                        size: 'xs',
-                        color: '#aaaaaa',
-                        align: 'center',
-                    },
-                ],
+                contents: [{ type: 'text', text: 'Razaan - Dignity Among Women', size: 'xs', color: '#aaaaaa', align: 'center' }],
             },
         },
     };
-
     await pushMessage(to, [flexMessage]);
-    console.log(`✅ Welcome message sent to: ${to}`);
 }
 
-// 2. Template: New Order Confirmation (Flex Message)
+// 2. Order Confirmation (สร้าง Order สำเร็จ)
 export async function sendOrderConfirmation(to: string, order: IOrder) {
-    const trackingUrl = `${APP_URL}/tracking/${order._id}`;
-
-    // Status color mapping
-    const statusText = 'รอยืนยัน';
-    const statusColor = '#EAB308'; // Yellow
-
     const flexMessage = {
         type: 'flex',
-        altText: `บิลใบเสร็จ: ${order.dressName}`,
+        altText: `ยืนยันการสั่งตัด: ${order.dressName}`,
         contents: {
             type: 'bubble',
-            hero: {
-                type: 'image',
-                url: 'https://placehold.co/800x400/6B21A8/ffffff/png?text=RAZAAN+Order', // Placeholder branding
-                size: 'full',
-                aspectRatio: '20:13',
-                aspectMode: 'cover',
-            },
             body: {
                 type: 'box',
                 layout: 'vertical',
                 contents: [
+                    { type: 'text', text: '✅ รับออเดอร์แล้ว', weight: 'bold', size: 'xl', color: '#10B981' },
+                    { type: 'text', text: order.dressName, weight: 'bold', size: 'lg', margin: 'md' },
+                    { type: 'separator', margin: 'lg' },
                     {
-                        type: 'text',
-                        text: 'RAZAAN - Verified Order',
-                        weight: 'bold',
-                        color: '#6B21A8',
-                        size: 'sm',
-                    },
-                    {
-                        type: 'text',
-                        text: order.dressName,
-                        weight: 'bold',
-                        size: 'xl',
-                        margin: 'md',
-                    },
-                    {
-                        type: 'text',
-                        text: `${order.price.toLocaleString()} THB`,
-                        size: 'xs',
-                        color: '#aaaaaa',
-                        wrap: true,
-                    },
-                    {
-                        type: 'separator',
-                        margin: 'xxl',
-                    },
-                    {
-                        type: 'box',
-                        layout: 'vertical',
-                        margin: 'xxl',
-                        spacing: 'sm',
+                        type: 'box', layout: 'vertical', margin: 'lg', spacing: 'sm',
                         contents: [
                             {
-                                type: 'box',
-                                layout: 'baseline',
-                                contents: [
-                                    { type: 'text', text: 'มัดจำ', color: '#aaaaaa', size: 'sm', flex: 1 },
-                                    { type: 'text', text: `${order.deposit.toLocaleString()} THB`, wrap: true, color: '#666666', size: 'sm', flex: 5 },
-                                ],
+                                type: 'box', layout: 'baseline', contents: [
+                                    { type: 'text', text: 'ราคา', color: '#aaaaaa', size: 'sm', flex: 1 },
+                                    { type: 'text', text: `${order.price?.toLocaleString()} ฿`, size: 'sm', flex: 2 },
+                                ]
                             },
                             {
-                                type: 'box',
-                                layout: 'baseline',
-                                contents: [
+                                type: 'box', layout: 'baseline', contents: [
+                                    { type: 'text', text: 'มัดจำ', color: '#aaaaaa', size: 'sm', flex: 1 },
+                                    { type: 'text', text: `${order.deposit?.toLocaleString()} ฿`, size: 'sm', flex: 2 },
+                                ]
+                            },
+                            {
+                                type: 'box', layout: 'baseline', contents: [
                                     { type: 'text', text: 'คงเหลือ', color: '#aaaaaa', size: 'sm', flex: 1 },
-                                    { type: 'text', text: `${order.balance.toLocaleString()} THB`, wrap: true, color: '#666666', size: 'sm', flex: 5 },
-                                ],
+                                    { type: 'text', text: `${order.balance?.toLocaleString()} ฿`, size: 'sm', color: '#EF4444', flex: 2 },
+                                ]
                             },
                         ],
-                    },
-                    {
-                        type: 'separator',
-                        margin: 'xxl',
                     },
                 ],
             },
             footer: {
                 type: 'box',
                 layout: 'vertical',
-                spacing: 'sm',
-                contents: [
-                    {
-                        type: 'button',
-                        style: 'primary',
-                        height: 'sm',
-                        action: {
-                            type: 'uri',
-                            label: 'ดูรายละเอียด & สถานะ',
-                            uri: trackingUrl,
-                        },
-                        color: '#6B21A8',
-                    },
-                ],
+                contents: [{ type: 'text', text: 'เราจะแจ้งเตือนเมื่อมีการอัปเดตสถานะ', size: 'xs', color: '#aaaaaa', align: 'center' }],
             },
         },
     };
-
     await pushMessage(to, [flexMessage]);
 }
 
-// 3. Template: Status Update
+// 3. Status Update (อัปเดตสถานะ)
 export async function sendStatusUpdate(to: string, order: IOrder, status: string) {
-    const trackingUrl = `${APP_URL}/tracking/${order._id}`;
-
-    // Map status to Thai message
-    const statusMap: Record<string, { label: string; color: string; desc: string }> = {
-        confirmed: { label: 'ยืนยันออเดอร์', color: '#10B981', desc: 'ร้านค้าได้รับออเดอร์แล้ว กำลังเตรียมการผลิต' },
-        producing: { label: 'กำลังตัดเย็บ', color: '#3B82F6', desc: 'ช่างกำลังดำเนินการตัดเย็บชุดของคุณอย่างประณีต' },
-        qc: { label: 'ตรวจสอบคุณภาพ', color: '#8B5CF6', desc: 'ชุดตัดเสร็จแล้ว กำลังตรวจสอบความเรียบร้อย' },
-        packing: { label: 'กำลังแพ็ค', color: '#EC4899', desc: 'กำลังรีดและแพ็คสินค้า' },
-        ready_to_ship: { label: 'รอส่งมอบ/จัดส่ง', color: '#F59E0B', desc: 'สินค้าพร้อมแล้ว รอการจัดส่งหรือมารับ' },
-        completed: { label: 'เสร็จสิ้น', color: '#6B7280', desc: 'ขอบคุณที่ใช้บริการครับ' },
-        cancelled: { label: 'ยกเลิก', color: '#EF4444', desc: 'รายการถูกยกเลิก' },
+    const statusMap: Record<string, { label: string; color: string; emoji: string }> = {
+        confirmed: { label: 'ยืนยันออเดอร์', color: '#10B981', emoji: '✅' },
+        producing: { label: 'กำลังตัดเย็บ', color: '#3B82F6', emoji: '✂️' },
+        qc: { label: 'ตรวจสอบคุณภาพ', color: '#8B5CF6', emoji: '🔍' },
+        packing: { label: 'กำลังแพ็ค', color: '#EC4899', emoji: '📦' },
+        ready_to_ship: { label: 'พร้อมรับชุด', color: '#F59E0B', emoji: '🎉' },
+        completed: { label: 'ส่งมอบแล้ว', color: '#6B7280', emoji: '💜' },
+        cancelled: { label: 'ยกเลิก', color: '#EF4444', emoji: '❌' },
     };
 
-    const info = statusMap[status] || { label: status, color: '#666666', desc: 'มีการอัปเดตสถานะ' };
+    const info = statusMap[status] || { label: status, color: '#666666', emoji: '📋' };
 
     const flexMessage = {
         type: 'flex',
-        altText: `อัปเดตสถานะ: ${info.label}`,
+        altText: `${info.emoji} ${info.label}: ${order.dressName}`,
         contents: {
             type: 'bubble',
             body: {
                 type: 'box',
                 layout: 'vertical',
                 contents: [
-                    {
-                        type: 'text',
-                        text: 'UPDATE STATUS',
-                        weight: 'bold',
-                        color: info.color,
-                        size: 'xs',
-                    },
-                    {
-                        type: 'text',
-                        text: info.label,
-                        weight: 'bold',
-                        size: 'xl',
-                        margin: 'md',
-                    },
-                    {
-                        type: 'text',
-                        text: info.desc,
-                        size: 'sm',
-                        color: '#666666',
-                        wrap: true,
-                        margin: 'md',
-                    },
-                    {
-                        type: 'separator',
-                        margin: 'lg',
-                    },
-                    {
-                        type: 'box',
-                        layout: 'vertical',
-                        margin: 'lg',
-                        contents: [
-                            {
-                                type: 'text',
-                                text: `Order: ${order.dressName}`,
-                                size: 'xs',
-                                color: '#aaaaaa',
-                            },
-                        ],
-                    },
+                    { type: 'text', text: `${info.emoji} ${info.label}`, weight: 'bold', size: 'xl', color: info.color },
+                    { type: 'text', text: order.dressName, size: 'md', margin: 'md' },
+                    { type: 'text', text: `ลูกค้า: ${order.customerName}`, size: 'sm', color: '#666666', margin: 'sm' },
                 ],
             },
-            footer: {
+        },
+    };
+    await pushMessage(to, [flexMessage]);
+}
+
+// 4. Tailor Notification (ส่งงานให้ช่างตัด)
+export async function sendTailorNotification(order: IOrder) {
+    if (!LINE_TAILOR_USER_ID) {
+        console.error('❌ LINE_TAILOR_USER_ID is not set!');
+        return false;
+    }
+
+    const measurements = order.measurements || {};
+    const measurementText = [
+        `ไหล่: ${measurements.shoulder || '-'} ซม.`,
+        `อก: ${measurements.chest || '-'} ซม.`,
+        `เอว: ${measurements.waist || '-'} ซม.`,
+        `สะโพก: ${measurements.hips || '-'} ซม.`,
+        `ความยาว: ${measurements.totalLength || '-'} ซม.`,
+    ].join('\n');
+
+    const flexMessage = {
+        type: 'flex',
+        altText: `📋 งานใหม่: ${order.dressName}`,
+        contents: {
+            type: 'bubble',
+            header: {
+                type: 'box',
+                layout: 'vertical',
+                backgroundColor: '#6B21A8',
+                paddingAll: 'lg',
+                contents: [
+                    { type: 'text', text: '✂️ งานตัดชุดใหม่', weight: 'bold', size: 'lg', color: '#ffffff' },
+                ],
+            },
+            body: {
                 type: 'box',
                 layout: 'vertical',
                 contents: [
-                    {
-                        type: 'button',
-                        style: 'link',
-                        height: 'sm',
-                        action: {
-                            type: 'uri',
-                            label: 'เปิดดูสถานะ',
-                            uri: trackingUrl,
-                        },
-                    },
+                    { type: 'text', text: order.dressName, weight: 'bold', size: 'xl' },
+                    { type: 'text', text: `ลูกค้า: ${order.customerName}`, size: 'sm', color: '#666666', margin: 'md' },
+                    { type: 'text', text: `สี: ${order.color || '-'}`, size: 'sm', color: '#666666' },
+                    { type: 'separator', margin: 'lg' },
+                    { type: 'text', text: '📐 ไซส์:', weight: 'bold', size: 'sm', margin: 'lg' },
+                    { type: 'text', text: measurementText, size: 'sm', color: '#333333', wrap: true },
+                    order.notes ? { type: 'text', text: `📝 หมายเหตุ: ${order.notes}`, size: 'sm', color: '#EF4444', wrap: true, margin: 'lg' } : { type: 'filler' },
                 ],
             },
         },
     };
 
-    await pushMessage(to, [flexMessage]);
+    return await pushMessage(LINE_TAILOR_USER_ID, [flexMessage]);
 }
