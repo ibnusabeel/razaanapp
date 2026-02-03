@@ -108,8 +108,8 @@ export default function MemberSelect({ onSelect, selectedMember }: MemberSelectP
 
             {/* Modal */}
             {isOpen && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center">
-                    <div className="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl max-h-[80vh] overflow-hidden">
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white w-full max-w-md rounded-2xl max-h-[80vh] overflow-hidden shadow-2xl">
                         {/* Header */}
                         <div className="p-4 border-b border-gray-100">
                             <div className="flex items-center justify-between mb-3">

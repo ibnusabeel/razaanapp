@@ -2,505 +2,230 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Save, Loader2, ArrowLeft } from 'lucide-react';
+import { Save, Loader2, ArrowLeft, Ruler, User, Info, FileText } from 'lucide-react';
 import Link from 'next/link';
 import MemberSelect from './MemberSelect';
 
-// Interface สำหรับข้อมูลฟอร์ม
-interface OrderFormData {
-    customerName: string;
-    phone: string;
-    lineUserId?: string; // Added for LINE notifications
-    orderDate: string;
-    dressName: string;
-    color: string;
-    size: string;
-    price: number | string;
-    deposit: number | string;
-    points: 'give' | 'no';
-    measurements: {
-        shoulder: number | string;
-        chest: number | string;
-        waist: number | string;
-        armhole: number | string;
-        sleeveLength: number | string;
-        wrist: number | string;
-        upperArm: number | string;
-        hips: number | string;
-        totalLength: number | string;
-    };
-    deliveryAddress: string;
-    notes: string;
-}
-
-interface Member {
-    _id: string;
-    lineUserId: string;
-    displayName: string;
-    pictureUrl?: string;
-    realName: string;
-    phone: string;
-    address?: string;
-}
-
 interface OrderFormProps {
-    initialData?: OrderFormData;
+    initialData?: any;
     orderId?: string;
     isEdit?: boolean;
 }
 
-const defaultFormData: OrderFormData = {
-    customerName: '',
-    phone: '',
-    orderDate: new Date().toISOString().split('T')[0],
-    dressName: '',
-    color: '',
-    size: '',
-    price: '',
-    deposit: '',
-    points: 'no',
-    measurements: {
-        shoulder: '',
-        chest: '',
-        waist: '',
-        armhole: '',
-        sleeveLength: '',
-        wrist: '',
-        upperArm: '',
-        hips: '',
-        totalLength: '',
-    },
-    deliveryAddress: '',
-    notes: '',
-};
-
 export default function OrderForm({ initialData, orderId, isEdit = false }: OrderFormProps) {
     const router = useRouter();
-    const [formData, setFormData] = useState<OrderFormData>(initialData || defaultFormData);
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [selectedMember, setSelectedMember] = useState<Member | null>(null);
 
-    // คำนวณยอดคงเหลือ
-    const balance = (Number(formData.price) || 0) - (Number(formData.deposit) || 0);
+    const [formData, setFormData] = useState(initialData || {
+        customerName: '', phone: '', lineUserId: '',
+        dressName: '', color: '', size: '', price: '', deposit: '',
+        points: 'no', notes: '', deliveryAddress: '',
+        orderDate: new Date().toISOString().split('T')[0],
+        measurements: {}
+    });
 
-    // Handle member selection - auto-fill customer info
-    const handleMemberSelect = (member: Member | null) => {
-        setSelectedMember(member);
+    const steps = [
+        { id: 'info', icon: User, label: 'ข้อมูลลูกค้า' },
+        { id: 'detail', icon: Info, label: 'รายละเอียด' },
+        { id: 'measure', icon: Ruler, label: 'สัดส่วน' }
+    ];
+    const [activeSection, setActiveSection] = useState('info');
+
+    const handleMemberSelect = (member: any) => {
         if (member) {
-            setFormData(prev => ({
+            setFormData((prev: any) => ({
                 ...prev,
                 customerName: member.realName,
                 phone: member.phone,
-                deliveryAddress: member.address || prev.deliveryAddress,
                 lineUserId: member.lineUserId,
-            }));
-        } else {
-            setFormData(prev => ({
-                ...prev,
-                lineUserId: undefined,
+                deliveryAddress: member.address || prev.deliveryAddress
             }));
         }
     };
 
-    // Handle input change สำหรับ field ปกติ
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const handleChange = (e: any) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        if (name.startsWith('m_')) {
+            const field = name.replace('m_', '');
+            setFormData((prev: any) => ({
+                ...prev,
+                measurements: { ...prev.measurements, [field]: value }
+            }));
+        } else {
+            setFormData((prev: any) => ({ ...prev, [name]: value }));
+        }
     };
 
-    // Handle input change สำหรับ measurements
-    const handleMeasurementChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            measurements: { ...prev.measurements, [name]: value },
-        }));
-    };
-
-    // Handle form submit
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
-        setError('');
-
         try {
-            // แปลงค่าเป็นตัวเลข
-            const submitData = {
-                ...formData,
-                price: Number(formData.price) || 0,
-                deposit: Number(formData.deposit) || 0,
-                measurements: {
-                    shoulder: Number(formData.measurements.shoulder) || 0,
-                    chest: Number(formData.measurements.chest) || 0,
-                    waist: Number(formData.measurements.waist) || 0,
-                    armhole: Number(formData.measurements.armhole) || 0,
-                    sleeveLength: Number(formData.measurements.sleeveLength) || 0,
-                    wrist: Number(formData.measurements.wrist) || 0,
-                    upperArm: Number(formData.measurements.upperArm) || 0,
-                    hips: Number(formData.measurements.hips) || 0,
-                    totalLength: Number(formData.measurements.totalLength) || 0,
-                },
-            };
-
-            const url = isEdit ? `/api/orders/${orderId}` : '/api/orders';
+            const endpoint = isEdit ? `/api/orders/${orderId}` : '/api/orders';
             const method = isEdit ? 'PUT' : 'POST';
 
-            const response = await fetch(url, {
+            const res = await fetch(endpoint, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(submitData),
+                body: JSON.stringify(formData)
             });
 
-            const result = await response.json();
+            if (!res.ok) throw new Error('Failed');
+            const data = await res.json();
 
-            if (!response.ok) {
-                throw new Error(result.error || 'เกิดข้อผิดพลาด');
-            }
-
-            // Redirect ไปหน้ารายละเอียด (เพื่อให้แสดง QR Code ได้ทันที)
-            // ถ้าเป็น Edit ให้ไปหน้าเดิม ถ้าเป็น New ให้ไปหน้าที่เพิ่งสร้าง
-            const targetId = isEdit ? orderId : result.data._id;
-            router.push(`/orders/${targetId}`);
+            router.push(`/orders/${isEdit ? orderId : data.data._id}`);
             router.refresh();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการบันทึก');
-        } finally {
+        } catch (error) {
+            alert('เกิดข้อผิดพลาด กรุณาลองใหม่');
             setIsLoading(false);
         }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
+        <form onSubmit={handleSubmit} className="max-w-2xl mx-auto pb-24 px-4 sm:px-0">
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                    <Link href="/orders" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                        <ArrowLeft className="w-5 h-5 text-gray-600" />
-                    </Link>
-                    <div>
-                        <h1 className="text-2xl font-bold text-purple-700">
-                            {isEdit ? 'แก้ไขคำสั่งซื้อ' : 'Order ชุด'}
-                        </h1>
-                        <p className="text-sm text-gray-500">Razaan - Dignity Among Women</p>
-                    </div>
-                </div>
-                {/* วันที่ */}
-                <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">วันที่:</span>
-                    <input
-                        type="date"
-                        name="orderDate"
-                        value={formData.orderDate}
-                        onChange={handleChange}
-                        className="text-sm"
-                    />
-                </div>
-            </div>
-
-            {error && (
-                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-6">
-                    {error}
-                </div>
-            )}
-
-            {/* Member Selection - เลือกลูกค้าสมาชิก LINE */}
-            {!isEdit && (
-                <div className="mb-6 animate-fade-in">
-                    <label className="form-label mb-2 block">เชื่อมต่อลูกค้า LINE (สำหรับส่งแจ้งเตือนอัตโนมัติ)</label>
-                    <MemberSelect
-                        onSelect={handleMemberSelect}
-                        selectedMember={selectedMember}
-                    />
-                </div>
-            )}
-
-            {/* ข้อมูลลูกค้าและชุด */}
-            <div className="card mb-6 animate-fade-in">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label className="form-label">ชื่อลูกค้า *</label>
-                        <input
-                            type="text"
-                            name="customerName"
-                            value={formData.customerName}
-                            onChange={handleChange}
-                            placeholder="ชื่อลูกค้า"
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="form-label">ชื่อชุด *</label>
-                        <input
-                            type="text"
-                            name="dressName"
-                            value={formData.dressName}
-                            onChange={handleChange}
-                            placeholder="ชื่อชุด"
-                            required
-                        />
-                    </div>
-                </div>
-
-                {/* สี, ไซส์, ราคา */}
-                <div className="grid grid-cols-3 gap-4 mb-4">
-                    <div>
-                        <label className="form-label">สี *</label>
-                        <input
-                            type="text"
-                            name="color"
-                            value={formData.color}
-                            onChange={handleChange}
-                            placeholder="สี"
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="form-label">ไซส์</label>
-                        <input
-                            type="text"
-                            name="size"
-                            value={formData.size}
-                            onChange={handleChange}
-                            placeholder="ไซส์"
-                        />
-                    </div>
-                    <div>
-                        <label className="form-label">ราคา *</label>
-                        <input
-                            type="number"
-                            name="price"
-                            value={formData.price}
-                            onChange={handleChange}
-                            placeholder="ราคา"
-                            min="0"
-                            required
-                        />
-                    </div>
-                </div>
-
-                {/* มัดจำ, คงเหลือ, แต้ม */}
-                <div className="grid grid-cols-3 gap-4">
-                    <div>
-                        <label className="form-label">มัดจำ *</label>
-                        <input
-                            type="number"
-                            name="deposit"
-                            value={formData.deposit}
-                            onChange={handleChange}
-                            placeholder="มัดจำ"
-                            min="0"
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="form-label">คงเหลือ</label>
-                        <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-700 font-semibold">
-                            {balance.toLocaleString()} บาท
-                        </div>
-                    </div>
-                    <div>
-                        <label className="form-label">แต้ม</label>
-                        <div className="flex items-center gap-4 mt-2">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="radio"
-                                    name="points"
-                                    value="give"
-                                    checked={formData.points === 'give'}
-                                    onChange={handleChange}
-                                    className="w-4 h-4 text-purple-600"
-                                />
-                                <span>ให้</span>
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="radio"
-                                    name="points"
-                                    value="no"
-                                    checked={formData.points === 'no'}
-                                    onChange={handleChange}
-                                    className="w-4 h-4 text-purple-600"
-                                />
-                                <span>ไม่ให้</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* สัดส่วน */}
-            <div className="card mb-6 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                <h2 className="text-lg font-bold text-purple-700 mb-4 text-center border-b pb-2">
-                    สัดส่วน
-                </h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div>
-                        <label className="form-label">ไหล่</label>
-                        <input
-                            type="number"
-                            name="shoulder"
-                            value={formData.measurements.shoulder}
-                            onChange={handleMeasurementChange}
-                            placeholder="ไหล่"
-                            min="0"
-                            step="0.5"
-                        />
-                    </div>
-                    <div>
-                        <label className="form-label">รอบข้อมือ</label>
-                        <input
-                            type="number"
-                            name="wrist"
-                            value={formData.measurements.wrist}
-                            onChange={handleMeasurementChange}
-                            placeholder="รอบข้อมือ"
-                            min="0"
-                            step="0.5"
-                        />
-                    </div>
-                    <div>
-                        <label className="form-label">รอบอก</label>
-                        <input
-                            type="number"
-                            name="chest"
-                            value={formData.measurements.chest}
-                            onChange={handleMeasurementChange}
-                            placeholder="รอบอก"
-                            min="0"
-                            step="0.5"
-                        />
-                    </div>
-                    <div>
-                        <label className="form-label">ต้นแขน</label>
-                        <input
-                            type="number"
-                            name="upperArm"
-                            value={formData.measurements.upperArm}
-                            onChange={handleMeasurementChange}
-                            placeholder="ต้นแขน"
-                            min="0"
-                            step="0.5"
-                        />
-                    </div>
-                    <div>
-                        <label className="form-label">เอว</label>
-                        <input
-                            type="number"
-                            name="waist"
-                            value={formData.measurements.waist}
-                            onChange={handleMeasurementChange}
-                            placeholder="เอว"
-                            min="0"
-                            step="0.5"
-                        />
-                    </div>
-                    <div>
-                        <label className="form-label">สะโพก (วัดพอดี)</label>
-                        <input
-                            type="number"
-                            name="hips"
-                            value={formData.measurements.hips}
-                            onChange={handleMeasurementChange}
-                            placeholder="สะโพก"
-                            min="0"
-                            step="0.5"
-                        />
-                    </div>
-                    <div>
-                        <label className="form-label">วงแขน</label>
-                        <input
-                            type="number"
-                            name="armhole"
-                            value={formData.measurements.armhole}
-                            onChange={handleMeasurementChange}
-                            placeholder="วงแขน"
-                            min="0"
-                            step="0.5"
-                        />
-                    </div>
-                    <div>
-                        <label className="form-label">ยาวแขน</label>
-                        <input
-                            type="number"
-                            name="sleeveLength"
-                            value={formData.measurements.sleeveLength}
-                            onChange={handleMeasurementChange}
-                            placeholder="ยาวแขน"
-                            min="0"
-                            step="0.5"
-                        />
-                    </div>
-                    <div>
-                        <label className="form-label">ความยาวชุด</label>
-                        <input
-                            type="number"
-                            name="totalLength"
-                            value={formData.measurements.totalLength}
-                            onChange={handleMeasurementChange}
-                            placeholder="ความยาวชุด"
-                            min="0"
-                            step="0.5"
-                        />
-                    </div>
-                </div>
-            </div>
-
-            {/* หมายเหตุ และ ที่อยู่จัดส่ง */}
-            <div className="card mb-6 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                <div className="mb-4">
-                    <label className="form-label">หมายเหตุ</label>
-                    <textarea
-                        name="notes"
-                        value={formData.notes}
-                        onChange={handleChange}
-                        placeholder="หมายเหตุเพิ่มเติม..."
-                        rows={3}
-                    />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label className="form-label">เบอร์ติดต่อ *</label>
-                        <input
-                            type="tel"
-                            name="phone"
-                            value={formData.phone}
-                            onChange={handleChange}
-                            placeholder="เบอร์ติดต่อ"
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="form-label">ที่อยู่จัดส่ง</label>
-                        <input
-                            type="text"
-                            name="deliveryAddress"
-                            value={formData.deliveryAddress}
-                            onChange={handleChange}
-                            placeholder="ที่อยู่จัดส่ง"
-                        />
-                    </div>
-                </div>
-            </div>
-
-            {/* Submit Button */}
-            <div className="flex justify-center gap-4">
-                <Link href="/orders" className="btn-outline">
-                    ยกเลิก
+            <div className="flex items-center gap-3 py-4 mb-2">
+                <Link href="/orders" className="p-2 hover:bg-slate-100 rounded-full text-slate-500">
+                    <ArrowLeft className="w-5 h-5" />
                 </Link>
-                <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="btn-primary flex items-center gap-2"
-                >
-                    {isLoading ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                        <Save className="w-5 h-5" />
+                <h1 className="text-xl font-bold text-slate-800">{isEdit ? 'แก้ไขออเดอร์' : 'สร้างออเดอร์ใหม่'}</h1>
+            </div>
+
+            {/* Steps / Tabs */}
+            <div className="flex bg-slate-100 p-1 rounded-xl mb-6">
+                {steps.map(step => (
+                    <button
+                        key={step.id}
+                        type="button"
+                        onClick={() => setActiveSection(step.id)}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${activeSection === step.id ? 'bg-white text-violet-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                    >
+                        <step.icon className="w-4 h-4" />
+                        {step.label}
+                    </button>
+                ))}
+            </div>
+
+            {/* Sections */}
+            <div className="space-y-6">
+
+                {/* 1. Customer Info */}
+                <div className={activeSection === 'info' ? 'block animate-fade-in' : 'hidden'}>
+                    {!isEdit && (
+                        <div className="mb-6">
+                            <label className="text-label">นำเข้าจากสมาชิก (LINE)</label>
+                            <MemberSelect onSelect={handleMemberSelect} />
+                        </div>
                     )}
-                    {isLoading ? 'กำลังบันทึก...' : 'บันทึกคำสั่งซื้อ'}
-                </button>
+
+                    <div className="card space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-label">ชื่อลูกค้า *</label>
+                                <input name="customerName" required value={formData.customerName} onChange={handleChange} className="input-field" placeholder="ระบุชื่อ" />
+                            </div>
+                            <div>
+                                <label className="text-label">เบอร์โทร *</label>
+                                <input name="phone" required type="tel" value={formData.phone} onChange={handleChange} className="input-field" placeholder="0xx-xxxxxxx" />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="text-label">ที่อยู่จัดส่ง</label>
+                            <textarea name="deliveryAddress" value={formData.deliveryAddress} onChange={handleChange} className="input-field" rows={3} placeholder="ที่อยู่..." />
+                        </div>
+                        <div>
+                            <label className="text-label">วันที่สั่ง</label>
+                            <input type="date" name="orderDate" value={formData.orderDate} onChange={handleChange} className="input-field" />
+                        </div>
+                    </div>
+
+                    <div className="mt-6 flex justify-end">
+                        <button type="button" onClick={() => setActiveSection('detail')} className="btn-primary w-full">
+                            ถัดไป: รายละเอียดชุด
+                        </button>
+                    </div>
+                </div>
+
+                {/* 2. Order Details */}
+                <div className={activeSection === 'detail' ? 'block animate-fade-in' : 'hidden'}>
+                    <div className="card space-y-4">
+                        <div>
+                            <label className="text-label">ชื่อชุด *</label>
+                            <input name="dressName" required value={formData.dressName} onChange={handleChange} className="input-field" placeholder="เช่น ชุดเดรสยาว..." />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-label">สี *</label>
+                                <input name="color" required value={formData.color} onChange={handleChange} className="input-field" placeholder="ระบุสี" />
+                            </div>
+                            <div>
+                                <label className="text-label">ไซส์</label>
+                                <input name="size" value={formData.size} onChange={handleChange} className="input-field" placeholder="S, M, L..." />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-label">ราคาเต็ม *</label>
+                                <input name="price" required type="number" value={formData.price} onChange={handleChange} className="input-field" placeholder="0.00" />
+                            </div>
+                            <div>
+                                <label className="text-label">มัดจำ</label>
+                                <input name="deposit" type="number" value={formData.deposit} onChange={handleChange} className="input-field" placeholder="0.00" />
+                            </div>
+                        </div>
+                        <div className="p-3 bg-slate-50 rounded-xl flex justify-between items-center text-sm font-medium">
+                            <span className="text-slate-500">คงเหลือที่ต้องชำระ</span>
+                            <span className="text-violet-600 text-lg">฿{((Number(formData.price) || 0) - (Number(formData.deposit) || 0)).toLocaleString()}</span>
+                        </div>
+
+                        <div>
+                            <label className="text-label">หมายเหตุ</label>
+                            <textarea name="notes" value={formData.notes} onChange={handleChange} className="input-field" rows={2} />
+                        </div>
+                    </div>
+
+                    <div className="mt-6 flex gap-3">
+                        <button type="button" onClick={() => setActiveSection('info')} className="btn-ghost flex-1">ย้อนกลับ</button>
+                        <button type="button" onClick={() => setActiveSection('measure')} className="btn-primary flex-1">ถัดไป: สัดส่วน</button>
+                    </div>
+                </div>
+
+                {/* 3. Measurements */}
+                <div className={activeSection === 'measure' ? 'block animate-fade-in' : 'hidden'}>
+                    <div className="card">
+                        <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <Ruler className="w-4 h-4 text-violet-500" /> ระบุสัดส่วน (นิ้ว)
+                        </h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                            {['shoulder:ไหล่', 'chest:อก', 'waist:เอว', 'hips:สะโพก', 'armhole:วงแขน', 'upperArm:ต้นแขน', 'sleeveLength:แขนยาว', 'wrist:ข้อมือ', 'totalLength:ชุดยาว'].map(item => {
+                                const [key, label] = item.split(':');
+                                return (
+                                    <div key={key}>
+                                        <label className="text-xs text-slate-400 mb-1 block">{label}</label>
+                                        <input
+                                            type="number"
+                                            step="0.5"
+                                            name={`m_${key}`}
+                                            value={formData.measurements?.[key] || ''}
+                                            onChange={handleChange}
+                                            className="input-field py-2 text-center"
+                                            placeholder="-"
+                                        />
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div className="mt-8 flex gap-3">
+                        <button type="button" onClick={() => setActiveSection('detail')} className="btn-ghost flex-1">ย้อนกลับ</button>
+                        <button type="submit" disabled={isLoading} className="btn-primary flex-[2] bg-emerald-500 hover:bg-emerald-600 shadow-emerald-200">
+                            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                            บันทึกออเดอร์
+                        </button>
+                    </div>
+                </div>
+
             </div>
         </form>
     );
