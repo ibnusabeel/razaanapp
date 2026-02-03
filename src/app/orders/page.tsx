@@ -2,27 +2,30 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import {
-    Search, Plus, Filter, ChevronLeft, ChevronRight,
-    MoreHorizontal, Calendar, User, Package
-} from 'lucide-react';
+import AdminLayout from '@/components/AdminLayout';
+import { Plus, ChevronLeft, ChevronRight, MoreHorizontal, Trash2, Search } from 'lucide-react';
 
 interface Order {
     _id: string;
+    orderNumber: string;
     customerName: string;
     phone: string;
     orderDate: string;
     dressName: string;
+    color: string;
+    size: string;
     price: number;
+    deposit: number;
+    balance: number;
     status: string;
 }
 
 const TABS = [
-    { id: 'all', label: 'ทั้งหมด' },
-    { id: 'pending', label: 'รอ' },
-    { id: 'producing', label: 'กำลังผลิต' },
-    { id: 'ready_to_ship', label: 'พร้อมส่ง' }, // status=packing,ready_to_ship
-    { id: 'completed', label: 'เสร็จสิ้น' },
+    { id: 'all', label: 'ทั้งหมด', color: 'from-violet-500 to-purple-600' },
+    { id: 'pending', label: 'รอดำเนินการ', color: 'from-amber-500 to-orange-500' },
+    { id: 'producing', label: 'กำลังผลิต', color: 'from-blue-500 to-indigo-500' },
+    { id: 'ready_to_ship', label: 'พร้อมส่ง', color: 'from-emerald-500 to-teal-500' },
+    { id: 'completed', label: 'เสร็จสิ้น', color: 'from-slate-500 to-gray-600' },
 ];
 
 export default function OrdersPage() {
@@ -32,19 +35,16 @@ export default function OrdersPage() {
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [total, setTotal] = useState(0);
 
     const fetchOrders = useCallback(async () => {
         setIsLoading(true);
         try {
             const params = new URLSearchParams();
             params.set('page', page.toString());
-            params.set('limit', '10');
+            params.set('limit', '15');
             if (search) params.set('search', search);
-
-            if (activeTab !== 'all') {
-                if (activeTab === 'ready_to_ship') params.set('status', 'packing,ready_to_ship');
-                else params.set('status', activeTab);
-            }
+            if (activeTab !== 'all') params.set('status', activeTab);
 
             const res = await fetch(`/api/orders?${params.toString()}`);
             const data = await res.json();
@@ -52,6 +52,7 @@ export default function OrdersPage() {
             if (data.success) {
                 setOrders(data.data);
                 setTotalPages(data.pagination.totalPages);
+                setTotal(data.pagination.total);
             }
         } catch (error) {
             console.error(error);
@@ -61,140 +62,212 @@ export default function OrdersPage() {
     }, [page, search, activeTab]);
 
     useEffect(() => {
-        // Debounce search
-        const timeout = setTimeout(() => {
-            fetchOrders();
-        }, 300);
+        const timeout = setTimeout(() => fetchOrders(), 300);
         return () => clearTimeout(timeout);
     }, [fetchOrders]);
 
-    return (
-        <div className="min-h-screen pb-20">
-            {/* Header */}
-            <div className="bg-white sticky top-0 z-30 border-b border-slate-100 px-4 py-3">
-                <div className="flex items-center justify-between mb-3">
-                    <h1 className="text-xl font-bold text-slate-800">Orders</h1>
-                    <Link href="/orders/new" className="btn-primary py-2 px-3 text-sm">
-                        <Plus className="w-4 h-4" /> สร้างใหม่
-                    </Link>
-                </div>
+    const handleDelete = async (id: string) => {
+        if (!confirm('ลบออเดอร์นี้?')) return;
+        await fetch(`/api/orders/${id}`, { method: 'DELETE' });
+        fetchOrders();
+    };
 
-                {/* Search & Filter */}
-                <div className="relative">
-                    <Search className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+    const statusColors: any = {
+        pending: 'bg-gradient-to-r from-amber-400 to-orange-500 text-white',
+        confirmed: 'bg-gradient-to-r from-blue-400 to-indigo-500 text-white',
+        producing: 'bg-gradient-to-r from-violet-400 to-purple-500 text-white',
+        qc: 'bg-gradient-to-r from-pink-400 to-rose-500 text-white',
+        packing: 'bg-gradient-to-r from-orange-400 to-amber-500 text-white',
+        ready_to_ship: 'bg-gradient-to-r from-emerald-400 to-teal-500 text-white',
+        completed: 'bg-gradient-to-r from-slate-400 to-gray-500 text-white',
+        cancelled: 'bg-gradient-to-r from-red-400 to-rose-500 text-white',
+    };
+    const statusLabels: any = {
+        pending: 'รอ', confirmed: 'ยืนยัน', producing: 'ผลิต',
+        qc: 'QC', packing: 'แพ็ค', ready_to_ship: 'พร้อม', completed: 'เสร็จ', cancelled: 'ยกเลิก'
+    };
+
+    return (
+        <AdminLayout
+            title="ออเดอร์"
+            subtitle={`ทั้งหมด ${total} รายการ`}
+            actions={
+                <Link
+                    href="/orders/new"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl text-sm font-bold hover:from-pink-600 hover:to-rose-600 transition-all shadow-lg"
+                >
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden sm:inline">สร้างใหม่</span>
+                </Link>
+            }
+        >
+            {/* Search */}
+            <div className="mb-4">
+                <div className="relative w-full lg:w-80">
+                    <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-purple-400" />
                     <input
                         type="text"
-                        placeholder="ค้นหาชื่อ, เบอร์โทร, ชื่อชุด..."
+                        placeholder="ค้นหาชื่อ หรือ เบอร์โทร..."
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="input-field pl-10 py-2.5 text-sm rounded-xl"
+                        onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                        className="w-full pl-10 pr-4 py-3 bg-white border-2 border-purple-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-300 focus:border-purple-300 shadow-sm"
                     />
-                </div>
-
-                {/* Tags */}
-                <div className="flex gap-2 overflow-x-auto py-3 no-scrollbar -mx-4 px-4">
-                    {TABS.map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => { setActiveTab(tab.id); setPage(1); }}
-                            className={`px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all border ${activeTab === tab.id
-                                    ? 'bg-violet-600 text-white border-violet-600 shadow-md shadow-violet-200'
-                                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                                }`}
-                        >
-                            {tab.label}
-                        </button>
-                    ))}
                 </div>
             </div>
 
-            {/* Content */}
-            <div className="p-4 space-y-3">
-                {isLoading ? (
-                    <div className="space-y-3">
-                        {[1, 2, 3].map(i => <div key={i} className="h-24 shimmer rounded-2xl" />)}
-                    </div>
-                ) : orders.length > 0 ? (
-                    orders.map((order) => (
-                        <Link
-                            key={order._id}
-                            href={`/orders/${order._id}`}
-                            className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm active:scale-[0.99] transition-transform block"
-                        >
-                            <div className="flex justify-between items-start mb-2">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-full bg-violet-50 text-violet-600 flex items-center justify-center font-bold text-xs">
-                                        {order.customerName.charAt(0)}
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold text-slate-800 text-sm">{order.customerName}</h3>
-                                        <span className="text-[10px] text-slate-400 block">{new Date(order.orderDate).toLocaleDateString('th-TH')}</span>
-                                    </div>
-                                </div>
-                                <StatusBadge status={order.status} />
-                            </div>
+            {/* Tabs */}
+            <div className="flex gap-2 mb-4 overflow-x-auto pb-2 -mx-4 px-4 lg:mx-0 lg:px-0">
+                {TABS.map(tab => (
+                    <button
+                        key={tab.id}
+                        onClick={() => { setActiveTab(tab.id); setPage(1); }}
+                        className={`px-4 py-2.5 text-sm font-bold rounded-xl whitespace-nowrap transition-all shadow-sm ${activeTab === tab.id
+                                ? `bg-gradient-to-r ${tab.color} text-white shadow-lg`
+                                : 'bg-white text-slate-600 border-2 border-purple-100 hover:border-purple-200'
+                            }`}
+                    >
+                        {tab.label}
+                    </button>
+                ))}
+            </div>
 
-                            <div className="flex justify-between items-end">
-                                <div>
-                                    <p className="text-xs text-slate-600 mb-1 flex items-center gap-1">
-                                        <Package className="w-3 h-3" /> {order.dressName}
-                                    </p>
-                                    <p className="text-xs text-slate-400 flex items-center gap-1">
-                                        <User className="w-3 h-3" /> {order.phone}
-                                    </p>
-                                </div>
-                                <span className="font-bold text-violet-600">฿{order.price.toLocaleString()}</span>
+            {/* Table */}
+            <div className="bg-white rounded-2xl shadow-lg shadow-purple-100 overflow-hidden border border-purple-50">
+                {/* Desktop Table */}
+                <div className="hidden lg:block">
+                    <table className="w-full">
+                        <thead className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-100">
+                            <tr className="text-left text-xs text-purple-600 uppercase tracking-wider">
+                                <th className="px-5 py-4 font-bold">เลขที่</th>
+                                <th className="px-5 py-4 font-bold">ลูกค้า</th>
+                                <th className="px-5 py-4 font-bold">รายการ</th>
+                                <th className="px-5 py-4 font-bold">สถานะ</th>
+                                <th className="px-5 py-4 font-bold text-right">ราคา</th>
+                                <th className="px-5 py-4 font-bold text-right">คงเหลือ</th>
+                                <th className="px-5 py-4 font-bold"></th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-purple-50">
+                            {isLoading ? (
+                                [...Array(5)].map((_, i) => (
+                                    <tr key={i}>
+                                        <td colSpan={7} className="px-5 py-4">
+                                            <div className="h-6 bg-gradient-to-r from-purple-100 to-pink-100 rounded animate-pulse" />
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : orders.length > 0 ? (
+                                orders.map((order) => (
+                                    <tr key={order._id} className="hover:bg-purple-50/50 transition-colors">
+                                        <td className="px-5 py-4">
+                                            <Link href={`/orders/${order._id}`} className="text-sm font-bold text-purple-600 hover:underline">
+                                                {order.orderNumber || order._id.slice(-6).toUpperCase()}
+                                            </Link>
+                                            <p className="text-xs text-slate-400">{new Date(order.orderDate).toLocaleDateString('th-TH')}</p>
+                                        </td>
+                                        <td className="px-5 py-4">
+                                            <p className="text-sm font-medium text-slate-800">{order.customerName}</p>
+                                            <p className="text-xs text-slate-400">{order.phone}</p>
+                                        </td>
+                                        <td className="px-5 py-4">
+                                            <p className="text-sm text-slate-800">{order.dressName}</p>
+                                            <p className="text-xs text-slate-400">{order.color} {order.size && `• ${order.size}`}</p>
+                                        </td>
+                                        <td className="px-5 py-4">
+                                            <span className={`text-xs px-3 py-1.5 rounded-full font-bold ${statusColors[order.status] || 'bg-gray-100'}`}>
+                                                {statusLabels[order.status] || order.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-5 py-4 text-right text-sm font-bold text-slate-700">
+                                            ฿{order.price?.toLocaleString()}
+                                        </td>
+                                        <td className="px-5 py-4 text-right">
+                                            <span className={`text-sm font-bold ${order.balance > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                                ฿{order.balance?.toLocaleString()}
+                                            </span>
+                                        </td>
+                                        <td className="px-5 py-4 text-right">
+                                            <div className="flex gap-1 justify-end">
+                                                <Link href={`/orders/${order._id}`} className="p-2 hover:bg-purple-100 rounded-lg text-purple-400 hover:text-purple-600">
+                                                    <MoreHorizontal className="w-4 h-4" />
+                                                </Link>
+                                                <button onClick={() => handleDelete(order._id)} className="p-2 hover:bg-rose-100 rounded-lg text-slate-400 hover:text-rose-500">
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={7} className="px-5 py-12 text-center text-slate-400">
+                                        ไม่พบออเดอร์
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Mobile Cards */}
+                <div className="lg:hidden divide-y divide-purple-50">
+                    {isLoading ? (
+                        [...Array(3)].map((_, i) => (
+                            <div key={i} className="p-4">
+                                <div className="h-20 bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl animate-pulse" />
                             </div>
-                        </Link>
-                    ))
-                ) : (
-                    <div className="text-center py-10 text-slate-400">
-                        <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                        <p>ไม่พบรายการคำสั่งซื้อ</p>
-                    </div>
-                )}
+                        ))
+                    ) : orders.length > 0 ? (
+                        orders.map((order) => (
+                            <Link key={order._id} href={`/orders/${order._id}`} className="block p-4 hover:bg-purple-50/50 transition-colors">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <p className="font-bold text-slate-800">{order.customerName}</p>
+                                        <p className="text-xs text-purple-500 font-medium">{order.orderNumber || order._id.slice(-6).toUpperCase()}</p>
+                                    </div>
+                                    <span className={`text-xs px-3 py-1 rounded-full font-bold ${statusColors[order.status] || 'bg-gray-100'}`}>
+                                        {statusLabels[order.status] || order.status}
+                                    </span>
+                                </div>
+                                <p className="text-sm text-slate-600 mb-2">👗 {order.dressName} • {order.color}</p>
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-slate-400">฿{order.price?.toLocaleString()}</span>
+                                    <span className={`font-bold ${order.balance > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                        ค้าง ฿{order.balance?.toLocaleString()}
+                                    </span>
+                                </div>
+                            </Link>
+                        ))
+                    ) : (
+                        <div className="p-8 text-center text-slate-400">
+                            ไม่พบออเดอร์
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Pagination */}
             {totalPages > 1 && (
-                <div className="flex justify-center gap-4 py-4">
-                    <button
-                        disabled={page === 1}
-                        onClick={() => setPage(p => p - 1)}
-                        className="p-2 rounded-full border hover:bg-slate-50 disabled:opacity-50"
-                    >
-                        <ChevronLeft className="w-5 h-5" />
-                    </button>
-                    <span className="self-center text-sm font-medium text-slate-600">{page} / {totalPages}</span>
-                    <button
-                        disabled={page === totalPages}
-                        onClick={() => setPage(p => p + 1)}
-                        className="p-2 rounded-full border hover:bg-slate-50 disabled:opacity-50"
-                    >
-                        <ChevronRight className="w-5 h-5" />
-                    </button>
+                <div className="flex justify-between items-center mt-4 text-sm text-slate-500">
+                    <span>หน้า {page} จาก {totalPages}</span>
+                    <div className="flex gap-2">
+                        <button
+                            disabled={page === 1}
+                            onClick={() => setPage(p => p - 1)}
+                            className="p-2 bg-white border-2 border-purple-100 rounded-xl hover:bg-purple-50 disabled:opacity-50 shadow-sm"
+                        >
+                            <ChevronLeft className="w-5 h-5 text-purple-500" />
+                        </button>
+                        <button
+                            disabled={page === totalPages}
+                            onClick={() => setPage(p => p + 1)}
+                            className="p-2 bg-white border-2 border-purple-100 rounded-xl hover:bg-purple-50 disabled:opacity-50 shadow-sm"
+                        >
+                            <ChevronRight className="w-5 h-5 text-purple-500" />
+                        </button>
+                    </div>
                 </div>
             )}
-        </div>
-    );
-}
-
-function StatusBadge({ status }: { status: string }) {
-    const map: any = {
-        pending: { label: 'รอ', color: 'bg-amber-100 text-amber-700' },
-        confirmed: { label: 'ยืนยัน', color: 'bg-blue-100 text-blue-700' },
-        producing: { label: 'ตัดเย็บ', color: 'bg-violet-100 text-violet-700' },
-        qc: { label: 'QC', color: 'bg-pink-100 text-pink-700' },
-        packing: { label: 'แพ็ค', color: 'bg-orange-100 text-orange-700' },
-        ready_to_ship: { label: 'พร้อมส่ง', color: 'bg-emerald-100 text-emerald-700' },
-        completed: { label: 'เสร็จสิ้น', color: 'bg-slate-100 text-slate-600' },
-        cancelled: { label: 'ยกเลิก', color: 'bg-red-50 text-red-500' }
-    };
-    const s = map[status] || { label: status, color: 'bg-gray-100 text-gray-500' };
-
-    return (
-        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${s.color}`}>
-            {s.label}
-        </span>
+        </AdminLayout>
     );
 }

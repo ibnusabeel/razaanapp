@@ -1,19 +1,14 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Calendar, Package, Phone, User, MapPin, FileText, Ruler } from 'lucide-react';
+import { ArrowLeft, Calendar, Phone, User, MapPin, FileText, Ruler, Palette, Tag, CreditCard, Sparkles } from 'lucide-react';
 import connectDB from '@/lib/mongodb';
 import Order from '@/models/Order';
-
-// Status Badge Component
 import StatusSelector from '@/components/StatusSelector';
 
 interface PageProps {
-    params: Promise<{
-        id: string;
-    }>;
+    params: Promise<{ id: string }>;
 }
 
-// ดึงข้อมูล Order จาก Database
 async function getOrder(id: string) {
     try {
         await connectDB();
@@ -25,7 +20,7 @@ async function getOrder(id: string) {
     }
 }
 
-export default async function OrderSummaryPage({ params }: PageProps) {
+export default async function OrderDetailPage({ params }: PageProps) {
     const { id } = await params;
     const order = await getOrder(id);
 
@@ -33,179 +28,138 @@ export default async function OrderSummaryPage({ params }: PageProps) {
         notFound();
     }
 
-    // จัดรูปแบบวันที่
     const orderDate = new Date(order.orderDate).toLocaleDateString('th-TH', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
+        year: 'numeric', month: 'long', day: 'numeric',
     });
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white py-6 px-4">
-            <div className="max-w-2xl mx-auto">
-                {/* Header */}
-                <div className="flex items-center gap-3 mb-6">
-                    <Link href="/orders" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                        <ArrowLeft className="w-5 h-5 text-gray-600" />
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50">
+            {/* Header */}
+            <header className="sticky top-0 bg-white/70 backdrop-blur-lg border-b border-purple-100 px-4 lg:px-8 py-4 z-30 shadow-sm">
+                <div className="max-w-3xl mx-auto flex items-center gap-4">
+                    <Link href="/orders" className="p-2 hover:bg-purple-100 rounded-xl text-purple-600">
+                        <ArrowLeft className="w-5 h-5" />
                     </Link>
                     <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-1">
-                            <h1 className="text-2xl font-bold text-purple-700">รายละเอียด</h1>
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-lg lg:text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                                {order.orderNumber || `#${id.slice(-6).toUpperCase()}`}
+                            </h1>
                             <StatusSelector orderId={id} currentStatus={order.status || 'pending'} />
                         </div>
-                        <p className="text-sm text-gray-500">Razaan - Dignity Among Women</p>
+                        <p className="text-xs text-slate-500">{orderDate}</p>
                     </div>
+                    <Link
+                        href={`/orders/${id}/edit`}
+                        className="px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-xl text-sm font-bold hover:from-violet-600 hover:to-purple-700 shadow-lg"
+                    >
+                        แก้ไข
+                    </Link>
                 </div>
+            </header>
 
-                {/* Order ID */}
-                <div className="card text-center mb-6">
-                    <h2 className="text-lg font-semibold text-gray-700 mb-2">Order ID</h2>
-                    <p className="text-sm text-gray-500 font-mono bg-gray-100 px-4 py-2 rounded-lg inline-block">{id}</p>
-                </div>
-
+            <main className="max-w-3xl mx-auto p-4 lg:p-8 space-y-6">
                 {/* Customer Info */}
-                <div className="card mb-4">
-                    <h3 className="text-lg font-semibold text-purple-700 mb-3 flex items-center gap-2">
-                        <User className="w-5 h-5" />
-                        ข้อมูลลูกค้า
-                    </h3>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <span className="text-xs text-gray-500">ชื่อลูกค้า</span>
-                            <p className="font-medium">{order.customerName}</p>
-                        </div>
-                        <div>
-                            <span className="text-xs text-gray-500 flex items-center gap-1">
-                                <Phone className="w-3 h-3" /> เบอร์ติดต่อ
-                            </span>
-                            <p className="font-medium">{order.phone}</p>
-                        </div>
+                <Section title="ข้อมูลลูกค้า" icon={<User className="w-4 h-4" />} color="from-violet-500 to-purple-600">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <InfoItem label="ชื่อ" value={order.customerName} />
+                        <InfoItem label="เบอร์โทร" value={order.phone} icon={<Phone className="w-3 h-3" />} />
                     </div>
-                </div>
+                </Section>
 
-                {/* Order Info */}
-                <div className="card mb-4">
-                    <h3 className="text-lg font-semibold text-purple-700 mb-3 flex items-center gap-2">
-                        <Package className="w-5 h-5" />
-                        ข้อมูลคำสั่งซื้อ
-                    </h3>
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <span className="text-xs text-gray-500 flex items-center gap-1">
-                                <Calendar className="w-3 h-3" /> วันที่สั่ง
-                            </span>
-                            <p className="font-medium">{orderDate}</p>
-                        </div>
-                        <div>
-                            <span className="text-xs text-gray-500">ชื่อชุด</span>
-                            <p className="font-medium">{order.dressName}</p>
-                        </div>
+                {/* Product Info */}
+                <Section title="รายละเอียดสินค้า" icon={<Tag className="w-4 h-4" />} color="from-pink-500 to-rose-600">
+                    <InfoItem label="ชื่อชุด" value={order.dressName} large />
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
+                        <InfoItem label="สี" value={order.color || '-'} icon={<Palette className="w-3 h-3" />} />
+                        <InfoItem label="ไซส์" value={order.size || '-'} />
+                        <InfoItem label="แต้ม" value={order.points === 'give' ? '✅ ให้แต้ม' : '❌ ไม่ให้'} />
                     </div>
-                    <div className="grid grid-cols-3 gap-4 mb-4">
-                        <div>
-                            <span className="text-xs text-gray-500">สี</span>
-                            <p className="font-medium">{order.color}</p>
+                </Section>
+
+                {/* Payment */}
+                <Section title="การชำระเงิน" icon={<CreditCard className="w-4 h-4" />} color="from-emerald-500 to-teal-600">
+                    <div className="grid grid-cols-3 gap-4">
+                        <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-4 text-center">
+                            <p className="text-xs text-slate-500 mb-1">ราคาเต็ม</p>
+                            <p className="text-xl font-bold text-slate-700">฿{order.price?.toLocaleString()}</p>
                         </div>
-                        <div>
-                            <span className="text-xs text-gray-500">ไซส์</span>
-                            <p className="font-medium">{order.size || '-'}</p>
+                        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-4 text-center">
+                            <p className="text-xs text-emerald-600 mb-1">มัดจำแล้ว</p>
+                            <p className="text-xl font-bold text-emerald-600">฿{order.deposit?.toLocaleString()}</p>
                         </div>
-                        <div>
-                            <span className="text-xs text-gray-500">แต้ม</span>
-                            <p className="font-medium">{order.points === 'give' ? '✅ ให้' : '❌ ไม่ให้'}</p>
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4 pt-4 border-t">
-                        <div>
-                            <span className="text-xs text-gray-500">ราคา</span>
-                            <p className="font-bold text-purple-600">{order.price?.toLocaleString()} ฿</p>
-                        </div>
-                        <div>
-                            <span className="text-xs text-gray-500">มัดจำ</span>
-                            <p className="font-medium text-green-600">{order.deposit?.toLocaleString()} ฿</p>
-                        </div>
-                        <div>
-                            <span className="text-xs text-gray-500">คงเหลือ</span>
-                            <p className={`font-bold ${order.balance > 0 ? 'text-orange-500' : 'text-green-500'}`}>
-                                {order.balance?.toLocaleString()} ฿
+                        <div className={`rounded-xl p-4 text-center ${order.balance > 0 ? 'bg-gradient-to-br from-rose-50 to-pink-50' : 'bg-gradient-to-br from-emerald-50 to-green-50'}`}>
+                            <p className={`text-xs mb-1 ${order.balance > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>คงเหลือ</p>
+                            <p className={`text-xl font-bold ${order.balance > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                ฿{order.balance?.toLocaleString()}
                             </p>
                         </div>
                     </div>
-                </div>
+                </Section>
 
                 {/* Measurements */}
                 {order.measurements && Object.values(order.measurements).some((v: any) => v > 0) && (
-                    <div className="card mb-4">
-                        <h3 className="text-lg font-semibold text-purple-700 mb-3 flex items-center gap-2">
-                            <Ruler className="w-5 h-5" />
-                            สัดส่วน
-                        </h3>
-                        <div className="grid grid-cols-3 gap-3 text-sm">
-                            {order.measurements.shoulder > 0 && (
-                                <div><span className="text-gray-500">ไหล่:</span> {order.measurements.shoulder}</div>
-                            )}
-                            {order.measurements.chest > 0 && (
-                                <div><span className="text-gray-500">รอบอก:</span> {order.measurements.chest}</div>
-                            )}
-                            {order.measurements.waist > 0 && (
-                                <div><span className="text-gray-500">เอว:</span> {order.measurements.waist}</div>
-                            )}
-                            {order.measurements.armhole > 0 && (
-                                <div><span className="text-gray-500">วงแขน:</span> {order.measurements.armhole}</div>
-                            )}
-                            {order.measurements.sleeveLength > 0 && (
-                                <div><span className="text-gray-500">ยาวแขน:</span> {order.measurements.sleeveLength}</div>
-                            )}
-                            {order.measurements.wrist > 0 && (
-                                <div><span className="text-gray-500">รอบข้อมือ:</span> {order.measurements.wrist}</div>
-                            )}
-                            {order.measurements.upperArm > 0 && (
-                                <div><span className="text-gray-500">ต้นแขน:</span> {order.measurements.upperArm}</div>
-                            )}
-                            {order.measurements.hips > 0 && (
-                                <div><span className="text-gray-500">สะโพก:</span> {order.measurements.hips}</div>
-                            )}
-                            {order.measurements.totalLength > 0 && (
-                                <div><span className="text-gray-500">ความยาวชุด:</span> {order.measurements.totalLength}</div>
-                            )}
+                    <Section title="สัดส่วน (นิ้ว)" icon={<Ruler className="w-4 h-4" />} color="from-blue-500 to-indigo-600">
+                        <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                            {order.measurements.shoulder > 0 && <MeasureItem label="ไหล่" value={order.measurements.shoulder} />}
+                            {order.measurements.chest > 0 && <MeasureItem label="อก" value={order.measurements.chest} />}
+                            {order.measurements.waist > 0 && <MeasureItem label="เอว" value={order.measurements.waist} />}
+                            {order.measurements.hips > 0 && <MeasureItem label="สะโพก" value={order.measurements.hips} />}
+                            {order.measurements.armhole > 0 && <MeasureItem label="วงแขน" value={order.measurements.armhole} />}
+                            {order.measurements.sleeveLength > 0 && <MeasureItem label="แขนยาว" value={order.measurements.sleeveLength} />}
+                            {order.measurements.wrist > 0 && <MeasureItem label="ข้อมือ" value={order.measurements.wrist} />}
+                            {order.measurements.upperArm > 0 && <MeasureItem label="ต้นแขน" value={order.measurements.upperArm} />}
+                            {order.measurements.totalLength > 0 && <MeasureItem label="ความยาว" value={order.measurements.totalLength} />}
                         </div>
-                    </div>
+                    </Section>
                 )}
 
                 {/* Notes & Delivery */}
                 {(order.notes || order.deliveryAddress) && (
-                    <div className="card mb-4">
-                        {order.notes && (
-                            <div className="mb-4">
-                                <h3 className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
-                                    <FileText className="w-4 h-4" />
-                                    หมายเหตุ
-                                </h3>
-                                <p className="text-gray-600">{order.notes}</p>
-                            </div>
-                        )}
+                    <Section title="หมายเหตุและการจัดส่ง" icon={<FileText className="w-4 h-4" />} color="from-amber-500 to-orange-600">
+                        {order.notes && <InfoItem label="หมายเหตุ" value={order.notes} />}
                         {order.deliveryAddress && (
-                            <div>
-                                <h3 className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
-                                    <MapPin className="w-4 h-4" />
-                                    ที่อยู่จัดส่ง
-                                </h3>
-                                <p className="text-gray-600">{order.deliveryAddress}</p>
+                            <div className="mt-3">
+                                <InfoItem label="ที่อยู่จัดส่ง" value={order.deliveryAddress} icon={<MapPin className="w-3 h-3" />} />
                             </div>
                         )}
-                    </div>
+                    </Section>
                 )}
+            </main>
+        </div>
+    );
+}
 
-                {/* Actions */}
-                <div className="flex justify-center gap-4">
-                    <Link href="/orders" className="btn-outline">
-                        กลับหน้ารายการ
-                    </Link>
-                    <Link href={`/orders/${id}/edit`} className="btn-primary">
-                        แก้ไขข้อมูล
-                    </Link>
-                </div>
+function Section({ title, icon, color, children }: { title: string; icon: React.ReactNode; color: string; children: React.ReactNode }) {
+    return (
+        <div className="bg-white rounded-2xl shadow-lg shadow-purple-100 overflow-hidden border border-purple-50">
+            <div className={`px-5 py-3 bg-gradient-to-r ${color} flex items-center gap-2`}>
+                <span className="text-white">{icon}</span>
+                <h3 className="text-sm font-bold text-white">{title}</h3>
             </div>
+            <div className="p-5">
+                {children}
+            </div>
+        </div>
+    );
+}
+
+function InfoItem({ label, value, icon, large }: { label: string; value: string; icon?: React.ReactNode; large?: boolean }) {
+    return (
+        <div>
+            <p className="text-xs text-slate-400 mb-1 flex items-center gap-1">
+                {icon} {label}
+            </p>
+            <p className={`text-slate-800 ${large ? 'text-lg font-bold' : 'font-medium'}`}>{value}</p>
+        </div>
+    );
+}
+
+function MeasureItem({ label, value }: { label: string; value: number }) {
+    return (
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-3 text-center border border-blue-100">
+            <p className="text-xs text-blue-600">{label}</p>
+            <p className="font-bold text-slate-800 text-lg">{value}</p>
         </div>
     );
 }
