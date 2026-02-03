@@ -52,15 +52,15 @@ body {
 }
 
 .btn-primary {
-  @apply btn bg-violet-600 text-white hover:bg-violet-700 shadow-lg shadow-violet-200;
+  @apply px-4 py-2.5 rounded-xl font-medium transition-all duration-200 active:scale-95 flex items-center justify-center gap-2 bg-violet-600 text-white hover:bg-violet-700 shadow-lg shadow-violet-200;
 }
 
 .btn-secondary {
-  @apply btn bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300;
+  @apply px-4 py-2.5 rounded-xl font-medium transition-all duration-200 active:scale-95 flex items-center justify-center gap-2 bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300;
 }
 
 .btn-ghost {
-  @apply btn text-slate-600 hover:bg-slate-100 bg-transparent;
+  @apply px-4 py-2.5 rounded-xl font-medium transition-all duration-200 active:scale-95 flex items-center justify-center gap-2 text-slate-600 hover:bg-slate-100 bg-transparent;
 }
 
 .card {
