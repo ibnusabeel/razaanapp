@@ -65,13 +65,29 @@ export async function POST(request: NextRequest) {
         console.log('📦 Creating order for:', body.customerName);
         console.log('📱 LINE User ID:', finalLineUserId || 'Not linked');
 
+        // Generate Order Number: ORD-{YYMM}-{RUNNING}
+        const now = new Date();
+        const prefix = `ORD-${String(now.getFullYear()).slice(-2)}${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const lastOrder = await Order.findOne({ orderNumber: { $regex: `^${prefix}` } }).sort({ orderNumber: -1 });
+        const nextNum = lastOrder ? parseInt(lastOrder.orderNumber.split('-')[2]) + 1 : 1;
+        const orderNumber = `${prefix}-${String(nextNum).padStart(3, '0')}`;
+
         const order = await Order.create({
             ...body,
+            orderNumber,
             customer: existingUser?._id,
             lineUserId: finalLineUserId,
             balance,
             orderDate: body.orderDate || new Date(),
         });
+
+        // อัปเดตไซส์ล่าสุดลงใน User Profile
+        if (existingUser && body.measurements) {
+            await User.findByIdAndUpdate(existingUser._id, {
+                $set: { measurements: body.measurements }
+            });
+            console.log('📏 Updated user measurements for:', existingUser.realName);
+        }
 
         // ส่ง Flex ให้ลูกค้า
         if (order.lineUserId) {

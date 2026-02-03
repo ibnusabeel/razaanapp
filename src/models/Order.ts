@@ -9,6 +9,7 @@ export interface IOrder extends Document {
   lineUserId?: string; // LINE User ID (redundant but useful for direct access)
 
   // ข้อมูลคำสั่งซื้อ
+  orderNumber: string; // เลข Order เช่น ORD-6802-001
   orderDate: Date;
   dressName: string;
   color: string;
@@ -61,6 +62,11 @@ const OrderSchema = new Schema<IOrder>(
     },
 
     // ข้อมูลคำสั่งซื้อ
+    orderNumber: {
+      type: String,
+      unique: true,
+      trim: true,
+    },
     orderDate: {
       type: Date,
       required: [true, 'กรุณาระบุวันที่สั่ง'],

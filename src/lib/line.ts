@@ -62,7 +62,7 @@ export async function sendWelcomeMessage(to: string, customerName: string) {
     await pushMessage(to, [flexMessage]);
 }
 
-// 2. Order Confirmation (ใบเสร็จออนไลน์)
+// 2. Order Confirmation (ใบเสร็จออนไลน์ - สวยๆ หลากสี)
 export async function sendOrderConfirmation(to: string, order: IOrder) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.razaan.co';
     const orderUrl = `${appUrl}/orders/${order._id}`;
@@ -70,111 +70,118 @@ export async function sendOrderConfirmation(to: string, order: IOrder) {
 
     const flexMessage = {
         type: 'flex',
-        altText: `📄 ใบเสร็จรับเงิน: ${order.dressName}`,
+        altText: `📄 ใบเสร็จ ${order.orderNumber}: ${order.dressName}`,
         contents: {
             type: 'bubble',
             size: 'giga',
+            styles: {
+                header: { backgroundColor: '#7C3AED' }, // Purple header
+                body: { backgroundColor: '#FAFAFA' },
+                footer: { backgroundColor: '#FAFAFA' },
+            },
             header: {
                 type: 'box',
                 layout: 'vertical',
-                backgroundColor: '#7C3AED', // Razaan Purple
                 paddingAll: 'lg',
                 contents: [
-                    { type: 'text', text: 'RAZAAN', weight: 'bold', size: 'xl', color: '#ffffff', align: 'center', letterSpacing: '2px' },
-                    { type: 'text', text: 'DIGNITY AMONG WOMEN', size: 'xxs', color: '#ffffffcc', align: 'center', letterSpacing: '1px' },
-                    { type: 'text', text: 'ใบเสร็จรับเงิน / RECEIPT', weight: 'bold', size: 'md', color: '#ffffff', align: 'center', margin: 'md' },
+                    { type: 'text', text: '✨ RAZAAN ✨', weight: 'bold', size: 'xl', color: '#ffffff', align: 'center' },
+                    { type: 'text', text: 'ใบเสร็จรับเงิน', size: 'sm', color: '#ffffffcc', align: 'center', margin: 'xs' },
                 ],
             },
             body: {
                 type: 'box',
                 layout: 'vertical',
+                paddingAll: 'lg',
                 contents: [
-                    // Customer Info
+                    // Order Number Badge
                     {
-                        type: 'box', layout: 'vertical',
-                        contents: [
-                            { type: 'text', text: 'ลูกค้า / CUSTOMER', size: 'xs', color: '#aaaaaa', weight: 'bold' },
-                            { type: 'text', text: order.customerName, size: 'sm', weight: 'bold', color: '#333333' },
-                            { type: 'text', text: order.phone, size: 'xs', color: '#666666' },
-                        ]
-                    },
-                    { type: 'separator', margin: 'md' },
-
-                    // Order Info
-                    {
-                        type: 'box', layout: 'horizontal', margin: 'md',
+                        type: 'box', layout: 'horizontal', justifyContent: 'center', margin: 'none',
                         contents: [
                             {
-                                type: 'box', layout: 'vertical', flex: 1,
+                                type: 'box', layout: 'vertical', backgroundColor: '#10B981', cornerRadius: 'lg', paddingAll: 'sm',
                                 contents: [
-                                    { type: 'text', text: 'NO.', size: 'xs', color: '#aaaaaa', weight: 'bold' },
-                                    { type: 'text', text: order._id ? order._id.toString().substring(0, 8).toUpperCase() : '-', size: 'sm', color: '#333333', weight: 'bold' },
-                                ]
-                            },
-                            {
-                                type: 'box', layout: 'vertical', flex: 1,
-                                contents: [
-                                    { type: 'text', text: 'DATE', size: 'xs', color: '#aaaaaa', weight: 'bold', align: 'end' },
-                                    { type: 'text', text: orderDate, size: 'sm', color: '#333333', align: 'end' },
+                                    { type: 'text', text: order.orderNumber || 'N/A', weight: 'bold', size: 'lg', color: '#ffffff', align: 'center' },
                                 ]
                             }
                         ]
                     },
 
-                    { type: 'separator', margin: 'md' },
+                    { type: 'separator', margin: 'lg' },
 
-                    // Item
-                    { type: 'text', text: 'รายการ / DESCRIPTION', size: 'xs', color: '#aaaaaa', weight: 'bold', margin: 'md' },
-                    { type: 'text', text: order.dressName, size: 'md', weight: 'bold', color: '#333333', margin: 'xs' },
+                    // Customer Info
                     {
-                        type: 'box', layout: 'baseline', margin: 'xs',
+                        type: 'box', layout: 'vertical', margin: 'lg',
                         contents: [
-                            { type: 'text', text: `สี: ${order.color}`, size: 'xs', color: '#666666' },
-                            { type: 'text', text: order.size ? ` | ไซส์: ${order.size}` : '', size: 'xs', color: '#666666' },
+                            { type: 'text', text: '👤 ลูกค้า', size: 'xs', color: '#8B5CF6', weight: 'bold' },
+                            { type: 'text', text: order.customerName, size: 'md', weight: 'bold', color: '#1F2937', margin: 'xs' },
+                        ]
+                    },
+
+                    // Product Info
+                    {
+                        type: 'box', layout: 'vertical', margin: 'lg', backgroundColor: '#F3E8FF', cornerRadius: 'md', paddingAll: 'md',
+                        contents: [
+                            { type: 'text', text: '👗 รายละเอียดชุด', size: 'xs', color: '#7C3AED', weight: 'bold' },
+                            { type: 'text', text: order.dressName, size: 'lg', weight: 'bold', color: '#1F2937', margin: 'sm' },
+                            {
+                                type: 'box', layout: 'horizontal', margin: 'sm', spacing: 'lg',
+                                contents: [
+                                    { type: 'text', text: `🎨 สี: ${order.color || '-'}`, size: 'sm', color: '#4B5563', flex: 1 },
+                                    { type: 'text', text: `📏 ไซส์: ${order.size || '-'}`, size: 'sm', color: '#4B5563', flex: 1 },
+                                ]
+                            },
                         ]
                     },
 
                     { type: 'separator', margin: 'lg' },
 
-                    // Payment
+                    // Payment Summary
                     {
                         type: 'box', layout: 'vertical', margin: 'lg', spacing: 'sm',
                         contents: [
+                            { type: 'text', text: '💰 สรุปยอดชำระ', size: 'xs', color: '#F59E0B', weight: 'bold' },
                             {
-                                type: 'box', layout: 'baseline', contents: [
-                                    { type: 'text', text: 'ราคาเต็ม', size: 'sm', color: '#666666', flex: 1 },
-                                    { type: 'text', text: `${order.price?.toLocaleString()} ฿`, size: 'sm', color: '#333333', align: 'end', flex: 1 },
+                                type: 'box', layout: 'horizontal', margin: 'sm',
+                                contents: [
+                                    { type: 'text', text: 'ราคาเต็ม', size: 'sm', color: '#6B7280', flex: 1 },
+                                    { type: 'text', text: `${order.price?.toLocaleString()} ฿`, size: 'sm', color: '#1F2937', align: 'end', flex: 1 },
                                 ]
                             },
                             {
-                                type: 'box', layout: 'baseline', contents: [
-                                    { type: 'text', text: 'มัดจำแล้ว', size: 'sm', color: '#10B981', flex: 1 }, // Green
+                                type: 'box', layout: 'horizontal',
+                                contents: [
+                                    { type: 'text', text: 'มัดจำแล้ว', size: 'sm', color: '#10B981', flex: 1, weight: 'bold' },
                                     { type: 'text', text: `-${order.deposit?.toLocaleString()} ฿`, size: 'sm', color: '#10B981', align: 'end', flex: 1, weight: 'bold' },
                                 ]
                             },
                             { type: 'separator' },
                             {
-                                type: 'box', layout: 'baseline', contents: [
-                                    { type: 'text', text: 'ยอดคงเหลือ', size: 'md', color: '#333333', flex: 1, weight: 'bold' },
-                                    { type: 'text', text: `${order.balance?.toLocaleString()} ฿`, size: 'lg', color: '#EF4444', align: 'end', flex: 1, weight: 'bold' }, // Red
+                                type: 'box', layout: 'horizontal', margin: 'sm',
+                                contents: [
+                                    { type: 'text', text: 'ยอดคงเหลือ', size: 'md', color: '#1F2937', flex: 1, weight: 'bold' },
+                                    { type: 'text', text: `${order.balance?.toLocaleString()} ฿`, size: 'xl', color: '#EF4444', align: 'end', flex: 1, weight: 'bold' },
                                 ]
                             },
                         ],
                     },
+
+                    // Order Date
+                    { type: 'text', text: `📅 วันที่: ${orderDate}`, size: 'xs', color: '#9CA3AF', align: 'center', margin: 'lg' },
                 ],
             },
             footer: {
                 type: 'box',
                 layout: 'vertical',
+                paddingAll: 'lg',
+                spacing: 'sm',
                 contents: [
                     {
                         type: 'button',
                         style: 'primary',
                         color: '#7C3AED',
-                        height: 'sm',
-                        action: { type: 'uri', label: 'ดูรายละเอียด / สถานะ', uri: orderUrl },
+                        action: { type: 'uri', label: '🧾 ดูใบเสร็จ / สถานะ', uri: orderUrl },
                     },
-                    { type: 'text', text: 'ขอบคุณที่ใช้บริการ Razaan ค่ะ', size: 'xxs', color: '#aaaaaa', align: 'center', margin: 'md' },
+                    { type: 'text', text: 'ขอบคุณที่ใช้บริการ Razaan ค่ะ 💜', size: 'xs', color: '#9CA3AF', align: 'center', margin: 'sm' },
                 ],
             },
         },

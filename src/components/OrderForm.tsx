@@ -38,7 +38,9 @@ export default function OrderForm({ initialData, orderId, isEdit = false }: Orde
                 customerName: member.realName,
                 phone: member.phone,
                 lineUserId: member.lineUserId,
-                deliveryAddress: member.address || prev.deliveryAddress
+                deliveryAddress: member.address || prev.deliveryAddress,
+                // Auto-fill measurements if available
+                measurements: member.measurements || prev.measurements
             }));
         }
     };

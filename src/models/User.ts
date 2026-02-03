@@ -48,6 +48,18 @@ const UserSchema = new Schema<IUser>(
             enum: ['customer', 'admin'],
             default: 'customer',
         },
+        // เก็บไซส์ล่าสุดของลูกค้า
+        measurements: {
+            shoulder: { type: Number, default: 0 },
+            chest: { type: Number, default: 0 },
+            waist: { type: Number, default: 0 },
+            armhole: { type: Number, default: 0 },
+            sleeveLength: { type: Number, default: 0 },
+            wrist: { type: Number, default: 0 },
+            upperArm: { type: Number, default: 0 },
+            hips: { type: Number, default: 0 },
+            totalLength: { type: Number, default: 0 },
+        },
     },
     {
         timestamps: true,
