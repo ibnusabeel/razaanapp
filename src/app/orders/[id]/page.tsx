@@ -1,6 +1,5 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { generateOrderQRCode } from '@/lib/lineNotify';
 import { ArrowLeft, Calendar, Package, Phone, User, MapPin, FileText, Ruler } from 'lucide-react';
 import connectDB from '@/lib/mongodb';
 import Order from '@/models/Order';
@@ -34,9 +33,6 @@ export default async function OrderSummaryPage({ params }: PageProps) {
         notFound();
     }
 
-    // สร้าง QR Code
-    const qrCode = await generateOrderQRCode(id);
-
     // จัดรูปแบบวันที่
     const orderDate = new Date(order.orderDate).toLocaleDateString('th-TH', {
         year: 'numeric',
@@ -61,15 +57,10 @@ export default async function OrderSummaryPage({ params }: PageProps) {
                     </div>
                 </div>
 
-                {/* QR Code */}
+                {/* Order ID */}
                 <div className="card text-center mb-6">
-                    <h2 className="text-lg font-semibold text-gray-700 mb-4">สแกน QR Code เพื่อดูข้อมูล</h2>
-                    <img
-                        src={qrCode}
-                        alt="Order QR Code"
-                        className="w-48 h-48 mx-auto mb-2"
-                    />
-                    <p className="text-xs text-gray-400">Order ID: {id}</p>
+                    <h2 className="text-lg font-semibold text-gray-700 mb-2">Order ID</h2>
+                    <p className="text-sm text-gray-500 font-mono bg-gray-100 px-4 py-2 rounded-lg inline-block">{id}</p>
                 </div>
 
                 {/* Customer Info */}
