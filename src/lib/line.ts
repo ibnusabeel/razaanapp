@@ -190,60 +190,227 @@ export async function sendOrderConfirmation(to: string, order: IOrder) {
     await pushMessage(to, [flexMessage]);
 }
 
-// 3. Status Update (แจ้งเตือนสถานะ - สวยๆ)
+// 3. Status Update (แจ้งเตือนสถานะ - สวยๆ หลากสี)
 export async function sendStatusUpdate(to: string, order: IOrder, status: string) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.razaan.co';
-    const orderUrl = `${appUrl}/receipt/${order._id}`; // Public receipt page
+    const orderUrl = `${appUrl}/receipt/${order._id}`;
 
-    const statusMap: Record<string, { label: string; color: string; bg: string; icon: string; desc: string }> = {
-        confirmed: { label: 'ยืนยันออเดอร์', color: '#10B981', bg: '#D1FAE5', icon: '✅', desc: 'ร้านค้ายืนยันออเดอร์แล้ว' },
-        producing: { label: 'กำลังตัดเย็บ', color: '#3B82F6', bg: '#DBEAFE', icon: '✂️', desc: 'ช่างกำลังดำเนินการตัดเย็บชุดของคุณ' },
-        qc: { label: 'ตรวจสอบคุณภาพ', color: '#8B5CF6', bg: '#EDE9FE', icon: '🔍', desc: 'กำลังตรวจสอบความเรียบร้อยก่อนส่ง' },
-        packing: { label: 'กำลังแพ็ค', color: '#EC4899', bg: '#FCE7F3', icon: '📦', desc: 'กำลังแพ็คสินค้าเตรียมจัดส่ง' },
-        ready_to_ship: { label: 'พร้อมส่ง/รับ', color: '#F59E0B', bg: '#FEF3C7', icon: '🛍️', desc: 'สินค้าพร้อมจัดส่ง หรือเข้ามารับได้เลย' },
-        completed: { label: 'ส่งมอบสำเร็จ', color: '#6B7280', bg: '#F3F4F6', icon: '🎉', desc: 'ขอบคุณที่ใช้บริการค่ะ' },
-        cancelled: { label: 'ยกเลิก', color: '#EF4444', bg: '#FEE2E2', icon: '❌', desc: 'ออเดอร์นี้ถูกยกเลิก' },
+    // สีสันชัดเจนสำหรับแต่ละสถานะ
+    const statusMap: Record<string, {
+        label: string;
+        headerColor: string;
+        accentColor: string;
+        icon: string;
+        desc: string;
+        emoji: string;
+    }> = {
+        confirmed: {
+            label: 'ยืนยันแล้ว!',
+            headerColor: '#10B981', // Emerald
+            accentColor: '#059669',
+            icon: '✅',
+            desc: 'ร้านค้ายืนยันออเดอร์แล้วค่ะ\nกำลังเตรียมเข้าสู่กระบวนการตัดเย็บ',
+            emoji: '💚'
+        },
+        producing: {
+            label: 'กำลังตัดเย็บ',
+            headerColor: '#3B82F6', // Blue
+            accentColor: '#2563EB',
+            icon: '✂️',
+            desc: 'ช่างกำลังตัดเย็บชุดของคุณ\nด้วยความประณีตทุกฝีเข็มค่ะ',
+            emoji: '💙'
+        },
+        qc: {
+            label: 'ตรวจสอบคุณภาพ',
+            headerColor: '#8B5CF6', // Violet
+            accentColor: '#7C3AED',
+            icon: '🔍',
+            desc: 'กำลังตรวจสอบความเรียบร้อย\nเพื่อให้มั่นใจในคุณภาพก่อนส่งมอบ',
+            emoji: '💜'
+        },
+        packing: {
+            label: 'กำลังแพ็ค',
+            headerColor: '#EC4899', // Pink
+            accentColor: '#DB2777',
+            icon: '📦',
+            desc: 'กำลังแพ็คสินค้าอย่างพิถีพิถัน\nเตรียมจัดส่งให้คุณลูกค้าค่ะ',
+            emoji: '💗'
+        },
+        ready_to_ship: {
+            label: 'พร้อมส่งแล้ว!',
+            headerColor: '#F59E0B', // Amber
+            accentColor: '#D97706',
+            icon: '🚚',
+            desc: 'สินค้าพร้อมจัดส่งแล้วค่ะ\nหรือเข้ามารับที่ร้านได้เลย!',
+            emoji: '🧡'
+        },
+        completed: {
+            label: 'ส่งมอบสำเร็จ!',
+            headerColor: '#059669', // Teal
+            accentColor: '#047857',
+            icon: '🎉',
+            desc: 'ขอบคุณที่ใช้บริการ Razaan ค่ะ\nหวังว่าจะได้บริการคุณอีกนะคะ',
+            emoji: '💚'
+        },
+        cancelled: {
+            label: 'ยกเลิกออเดอร์',
+            headerColor: '#EF4444', // Red
+            accentColor: '#DC2626',
+            icon: '❌',
+            desc: 'ออเดอร์นี้ถูกยกเลิกแล้วค่ะ\nหากมีข้อสงสัย ติดต่อร้านได้เลยนะคะ',
+            emoji: '❤️'
+        },
     };
 
-    const info = statusMap[status] || { label: status, color: '#666666', bg: '#f3f4f6', icon: '📋', desc: 'มีการอัปเดตสถานะ' };
+    const info = statusMap[status] || {
+        label: status,
+        headerColor: '#6B7280',
+        accentColor: '#4B5563',
+        icon: '📋',
+        desc: 'มีการอัปเดตสถานะออเดอร์ค่ะ',
+        emoji: '💬'
+    };
 
     const flexMessage = {
         type: 'flex',
-        altText: `${info.icon} อัปเดตสถานะ: ${info.label}`,
+        altText: `${info.icon} ${info.label}: ${order.dressName}`,
         contents: {
             type: 'bubble',
+            size: 'giga',
+            styles: {
+                header: { backgroundColor: info.headerColor },
+                body: { backgroundColor: '#FFFFFF' },
+                footer: { backgroundColor: '#FAFAFA' }
+            },
+            header: {
+                type: 'box',
+                layout: 'vertical',
+                paddingAll: 'xl',
+                contents: [
+                    {
+                        type: 'text',
+                        text: info.icon,
+                        size: '4xl',
+                        align: 'center'
+                    },
+                    {
+                        type: 'text',
+                        text: info.label,
+                        weight: 'bold',
+                        size: 'xxl',
+                        color: '#FFFFFF',
+                        align: 'center',
+                        margin: 'md'
+                    },
+                ],
+            },
             body: {
                 type: 'box',
                 layout: 'vertical',
+                paddingAll: 'lg',
+                spacing: 'lg',
                 contents: [
-                    // Status Badge
+                    // Description
                     {
-                        type: 'box', layout: 'vertical', backgroundColor: info.bg, cornerRadius: 'md', paddingAll: 'md',
+                        type: 'text',
+                        text: info.desc,
+                        size: 'md',
+                        color: '#374151',
+                        align: 'center',
+                        wrap: true,
+                        lineSpacing: '8px'
+                    },
+                    { type: 'separator' },
+                    // Order Card
+                    {
+                        type: 'box',
+                        layout: 'vertical',
+                        backgroundColor: '#F9FAFB',
+                        cornerRadius: 'lg',
+                        paddingAll: 'lg',
                         contents: [
-                            { type: 'text', text: info.icon, size: '3xl', align: 'center' },
-                            { type: 'text', text: info.label, weight: 'bold', size: 'lg', color: info.color, align: 'center', margin: 'sm' },
+                            {
+                                type: 'box',
+                                layout: 'horizontal',
+                                contents: [
+                                    { type: 'text', text: '👗', size: 'xxl' },
+                                    {
+                                        type: 'box',
+                                        layout: 'vertical',
+                                        paddingStart: 'md',
+                                        contents: [
+                                            {
+                                                type: 'text',
+                                                text: order.dressName,
+                                                weight: 'bold',
+                                                size: 'lg',
+                                                color: '#1F2937',
+                                                wrap: true
+                                            },
+                                            {
+                                                type: 'text',
+                                                text: `${order.color || '-'} • ${order.size || '-'}`,
+                                                size: 'sm',
+                                                color: '#6B7280',
+                                                margin: 'xs'
+                                            },
+                                        ]
+                                    }
+                                ]
+                            },
+                            { type: 'separator', margin: 'md' },
+                            {
+                                type: 'box',
+                                layout: 'horizontal',
+                                margin: 'md',
+                                contents: [
+                                    { type: 'text', text: 'เลขออเดอร์', size: 'sm', color: '#9CA3AF', flex: 1 },
+                                    { type: 'text', text: order.orderNumber || 'N/A', size: 'sm', color: '#1F2937', align: 'end', weight: 'bold', flex: 1 },
+                                ]
+                            },
+                            {
+                                type: 'box',
+                                layout: 'horizontal',
+                                margin: 'sm',
+                                contents: [
+                                    { type: 'text', text: 'ราคา', size: 'sm', color: '#9CA3AF', flex: 1 },
+                                    { type: 'text', text: `฿${order.price?.toLocaleString() || 0}`, size: 'sm', color: '#1F2937', align: 'end', weight: 'bold', flex: 1 },
+                                ]
+                            },
+                            ...(order.balance && order.balance > 0 ? [{
+                                type: 'box' as const,
+                                layout: 'horizontal' as const,
+                                margin: 'sm',
+                                contents: [
+                                    { type: 'text' as const, text: 'ค้างชำระ', size: 'sm' as const, color: '#EF4444', flex: 1 },
+                                    { type: 'text' as const, text: `฿${order.balance?.toLocaleString()}`, size: 'sm' as const, color: '#EF4444', align: 'end' as const, weight: 'bold' as const, flex: 1 },
+                                ]
+                            }] : []),
                         ]
                     },
-                    { type: 'text', text: info.desc, size: 'sm', color: '#555555', align: 'center', margin: 'md', wrap: true },
-                    { type: 'separator', margin: 'lg' },
-
-                    // Order Info
-                    {
-                        type: 'box', layout: 'vertical', margin: 'lg', spacing: 'xs',
-                        contents: [
-                            { type: 'text', text: 'รายการสินค้า', size: 'xs', color: '#aaaaaa' },
-                            { type: 'text', text: order.dressName, size: 'md', weight: 'bold', color: '#333333' },
-                            { type: 'text', text: `ราคา: ${order.price?.toLocaleString()} ฿`, size: 'sm', color: '#666666' },
-                        ]
-                    },
-
-                    // Button
+                ],
+            },
+            footer: {
+                type: 'box',
+                layout: 'vertical',
+                paddingAll: 'md',
+                spacing: 'sm',
+                contents: [
                     {
                         type: 'button',
-                        style: 'secondary',
-                        action: { type: 'uri', label: 'ดูสถานะล่าสุด', uri: orderUrl },
-                        margin: 'lg'
-                    }
+                        style: 'primary',
+                        color: info.accentColor,
+                        height: 'md',
+                        action: { type: 'uri', label: '📋 ดูรายละเอียด / ใบเสร็จ', uri: orderUrl },
+                    },
+                    {
+                        type: 'text',
+                        text: `${info.emoji} Razaan - Dignity Among Women`,
+                        size: 'xxs',
+                        color: '#9CA3AF',
+                        align: 'center',
+                        margin: 'sm'
+                    },
                 ],
             },
         },
