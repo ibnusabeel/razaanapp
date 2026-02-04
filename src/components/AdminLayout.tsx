@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
     LayoutDashboard, ShoppingBag, Users, Settings,
-    Plus, Menu, X
+    Plus, Menu, X, LogOut
 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 interface AdminLayoutProps {
     children: React.ReactNode;
@@ -25,10 +26,25 @@ const navItems = [
 export default function AdminLayout({ children, title, subtitle, actions }: AdminLayoutProps) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const pathname = usePathname();
+    const { logout, isLoading, isAuthenticated } = useAuth();
 
     useEffect(() => {
         setSidebarOpen(false);
     }, [pathname]);
+
+    // Show loading spinner while checking auth
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-violet-900 via-purple-800 to-fuchsia-900 flex items-center justify-center">
+                <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
+            </div>
+        );
+    }
+
+    // If not authenticated, the AuthContext will redirect to login
+    if (!isAuthenticated) {
+        return null;
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50">
@@ -74,8 +90,8 @@ export default function AdminLayout({ children, title, subtitle, actions }: Admi
                                 key={item.href}
                                 href={item.href}
                                 className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${isActive
-                                        ? `bg-gradient-to-r ${item.color} text-white shadow-lg`
-                                        : 'text-purple-200 hover:bg-white/10 hover:text-white'
+                                    ? `bg-gradient-to-r ${item.color} text-white shadow-lg`
+                                    : 'text-purple-200 hover:bg-white/10 hover:text-white'
                                     }`}
                             >
                                 <item.icon className="w-5 h-5" />
@@ -85,8 +101,8 @@ export default function AdminLayout({ children, title, subtitle, actions }: Admi
                     })}
                 </nav>
 
-                {/* Quick Action */}
-                <div className="p-4 border-t border-white/10">
+                {/* Quick Action & Logout */}
+                <div className="p-4 border-t border-white/10 space-y-3">
                     <Link
                         href="/orders/new"
                         className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl text-sm font-bold hover:from-pink-600 hover:to-rose-600 transition-all shadow-lg w-full justify-center"
@@ -94,6 +110,13 @@ export default function AdminLayout({ children, title, subtitle, actions }: Admi
                         <Plus className="w-5 h-5" />
                         สร้างออเดอร์ใหม่
                     </Link>
+                    <button
+                        onClick={logout}
+                        className="flex items-center gap-2 px-4 py-2.5 text-purple-300 hover:bg-white/10 hover:text-white rounded-xl text-sm font-medium transition-all w-full justify-center"
+                    >
+                        <LogOut className="w-4 h-4" />
+                        ออกจากระบบ
+                    </button>
                 </div>
             </aside>
 
