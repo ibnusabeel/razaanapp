@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import connectDB from '@/lib/mongodb';
 import Order from '@/models/Order';
 import OrderForm from '@/components/OrderForm';
+import AdminLayout from '@/components/AdminLayout';
 
 interface PageProps {
     params: Promise<{
@@ -61,8 +62,13 @@ export default async function EditOrderPage({ params }: PageProps) {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-purple-50 to-white py-6 px-4">
-            <OrderForm initialData={initialData} orderId={id} isEdit />
-        </div>
+        <AdminLayout
+            title="แก้ไขออเดอร์"
+            subtitle={`${order.orderNumber || '#' + id.slice(-6).toUpperCase()} • ${order.customerName}`}
+        >
+            <div className="max-w-3xl mx-auto">
+                <OrderForm initialData={initialData} orderId={id} isEdit />
+            </div>
+        </AdminLayout>
     );
 }

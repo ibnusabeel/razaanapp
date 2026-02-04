@@ -1,9 +1,10 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Calendar, Phone, User, MapPin, FileText, Ruler, Palette, Tag, CreditCard, Sparkles } from 'lucide-react';
+import { Phone, MapPin, FileText, Ruler, Palette, Tag, CreditCard, Edit } from 'lucide-react';
 import connectDB from '@/lib/mongodb';
 import Order from '@/models/Order';
 import StatusSelector from '@/components/StatusSelector';
+import AdminLayout from '@/components/AdminLayout';
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -33,34 +34,25 @@ export default async function OrderDetailPage({ params }: PageProps) {
     });
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50">
-            {/* Header */}
-            <header className="sticky top-0 bg-white/70 backdrop-blur-lg border-b border-purple-100 px-4 lg:px-8 py-4 z-30 shadow-sm">
-                <div className="max-w-3xl mx-auto flex items-center gap-4">
-                    <Link href="/orders" className="p-2 hover:bg-purple-100 rounded-xl text-purple-600">
-                        <ArrowLeft className="w-5 h-5" />
-                    </Link>
-                    <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                            <h1 className="text-lg lg:text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                                {order.orderNumber || `#${id.slice(-6).toUpperCase()}`}
-                            </h1>
-                            <StatusSelector orderId={id} currentStatus={order.status || 'pending'} />
-                        </div>
-                        <p className="text-xs text-slate-500">{orderDate}</p>
-                    </div>
+        <AdminLayout
+            title={order.orderNumber || `#${id.slice(-6).toUpperCase()}`}
+            subtitle={`${order.customerName} • ${orderDate}`}
+            actions={
+                <div className="flex items-center gap-3">
+                    <StatusSelector orderId={id} currentStatus={order.status || 'pending'} />
                     <Link
                         href={`/orders/${id}/edit`}
-                        className="px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-xl text-sm font-bold hover:from-violet-600 hover:to-purple-700 shadow-lg"
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-xl text-sm font-bold hover:from-violet-600 hover:to-purple-700 shadow-lg"
                     >
-                        แก้ไข
+                        <Edit className="w-4 h-4" />
+                        <span className="hidden sm:inline">แก้ไข</span>
                     </Link>
                 </div>
-            </header>
-
-            <main className="max-w-3xl mx-auto p-4 lg:p-8 space-y-6">
+            }
+        >
+            <div className="max-w-3xl mx-auto space-y-6">
                 {/* Customer Info */}
-                <Section title="ข้อมูลลูกค้า" icon={<User className="w-4 h-4" />} color="from-violet-500 to-purple-600">
+                <Section title="ข้อมูลลูกค้า" color="from-violet-500 to-purple-600">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <InfoItem label="ชื่อ" value={order.customerName} />
                         <InfoItem label="เบอร์โทร" value={order.phone} icon={<Phone className="w-3 h-3" />} />
@@ -68,7 +60,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
                 </Section>
 
                 {/* Product Info */}
-                <Section title="รายละเอียดสินค้า" icon={<Tag className="w-4 h-4" />} color="from-pink-500 to-rose-600">
+                <Section title="รายละเอียดสินค้า" color="from-pink-500 to-rose-600">
                     <InfoItem label="ชื่อชุด" value={order.dressName} large />
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
                         <InfoItem label="สี" value={order.color || '-'} icon={<Palette className="w-3 h-3" />} />
@@ -78,7 +70,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
                 </Section>
 
                 {/* Payment */}
-                <Section title="การชำระเงิน" icon={<CreditCard className="w-4 h-4" />} color="from-emerald-500 to-teal-600">
+                <Section title="การชำระเงิน" color="from-emerald-500 to-teal-600">
                     <div className="grid grid-cols-3 gap-4">
                         <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-4 text-center">
                             <p className="text-xs text-slate-500 mb-1">ราคาเต็ม</p>
@@ -99,7 +91,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
 
                 {/* Measurements */}
                 {order.measurements && Object.values(order.measurements).some((v: any) => v > 0) && (
-                    <Section title="สัดส่วน (นิ้ว)" icon={<Ruler className="w-4 h-4" />} color="from-blue-500 to-indigo-600">
+                    <Section title="สัดส่วน (นิ้ว)" color="from-blue-500 to-indigo-600">
                         <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
                             {order.measurements.shoulder > 0 && <MeasureItem label="ไหล่" value={order.measurements.shoulder} />}
                             {order.measurements.chest > 0 && <MeasureItem label="อก" value={order.measurements.chest} />}
@@ -116,7 +108,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
 
                 {/* Notes & Delivery */}
                 {(order.notes || order.deliveryAddress) && (
-                    <Section title="หมายเหตุและการจัดส่ง" icon={<FileText className="w-4 h-4" />} color="from-amber-500 to-orange-600">
+                    <Section title="หมายเหตุและการจัดส่ง" color="from-amber-500 to-orange-600">
                         {order.notes && <InfoItem label="หมายเหตุ" value={order.notes} />}
                         {order.deliveryAddress && (
                             <div className="mt-3">
@@ -125,16 +117,15 @@ export default async function OrderDetailPage({ params }: PageProps) {
                         )}
                     </Section>
                 )}
-            </main>
-        </div>
+            </div>
+        </AdminLayout>
     );
 }
 
-function Section({ title, icon, color, children }: { title: string; icon: React.ReactNode; color: string; children: React.ReactNode }) {
+function Section({ title, color, children }: { title: string; color: string; children: React.ReactNode }) {
     return (
         <div className="bg-white rounded-2xl shadow-lg shadow-purple-100 overflow-hidden border border-purple-50">
             <div className={`px-5 py-3 bg-gradient-to-r ${color} flex items-center gap-2`}>
-                <span className="text-white">{icon}</span>
                 <h3 className="text-sm font-bold text-white">{title}</h3>
             </div>
             <div className="p-5">
