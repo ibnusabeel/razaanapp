@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
     LayoutDashboard, ShoppingBag, Users, Settings,
-    Plus, Menu, X, LogOut
+    Plus, Menu, X, LogOut, Scissors
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -20,6 +20,7 @@ const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'หน้าหลัก', color: 'from-violet-500 to-purple-600' },
     { href: '/orders', icon: ShoppingBag, label: 'ออเดอร์', color: 'from-pink-500 to-rose-600' },
     { href: '/members', icon: Users, label: 'สมาชิก', color: 'from-emerald-500 to-teal-600' },
+    { href: '/tailors', icon: Scissors, label: 'ช่างตัด', color: 'from-blue-500 to-indigo-600' },
     { href: '/settings', icon: Settings, label: 'ตั้งค่า', color: 'from-gray-500 to-slate-600' },
 ];
 

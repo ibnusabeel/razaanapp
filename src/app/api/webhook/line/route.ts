@@ -57,45 +57,89 @@ export async function POST(req: NextRequest) {
                 console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
             }
 
-            // Trigger: follow / "สมัคร" / "ตัดชุด"
+            // Trigger: follow / "สมัคร" / "ตัดชุด" (ลูกค้า)
             if (event.type === 'follow' || text.includes('สมัคร') || text.includes('ตัดชุด')) {
-                const profile = await getProfile(userId);
-                const params = new URLSearchParams({
-                    lineUserId: userId,
-                    displayName: profile.displayName || '',
-                    pictureUrl: profile.pictureUrl || ''
-                });
-                const registerUrl = `${APP_URL}/register?${params.toString()}`;
+                // ถ้าพิมพ์ "สมัครช่าง" ให้ไปลงทะเบียนเป็นช่าง
+                if (text.includes('สมัครช่าง') || text.includes('ช่างตัด')) {
+                    const profile = await getProfile(userId);
+                    const params = new URLSearchParams({
+                        lineUserId: userId,
+                        displayName: profile.displayName || '',
+                        pictureUrl: profile.pictureUrl || '',
+                        role: 'tailor'
+                    });
+                    const registerUrl = `${APP_URL}/register?${params.toString()}`;
 
-                await replyMessage(event.replyToken, [
-                    {
-                        type: 'flex',
-                        altText: 'ลงทะเบียนตัดชุด Razaan',
-                        contents: {
-                            type: 'bubble',
-                            body: {
-                                type: 'box',
-                                layout: 'vertical',
-                                contents: [
-                                    { type: 'text', text: '✂️ ตัดชุด Razaan', weight: 'bold', size: 'xl', color: '#6B21A8' },
-                                    { type: 'text', text: 'กรุณากรอกข้อมูลเพื่อเริ่มต้นตัดชุดค่ะ', margin: 'md', wrap: true, color: '#666666' }
-                                ]
-                            },
-                            footer: {
-                                type: 'box',
-                                layout: 'vertical',
-                                contents: [
-                                    {
-                                        type: 'button',
-                                        style: 'primary',
-                                        color: '#6B21A8',
-                                        action: { type: 'uri', label: 'ลงทะเบียน', uri: registerUrl }
-                                    }
-                                ]
+                    await replyMessage(event.replyToken, [
+                        {
+                            type: 'flex',
+                            altText: 'สมัครเป็นช่างตัด Razaan',
+                            contents: {
+                                type: 'bubble',
+                                styles: { header: { backgroundColor: '#3B82F6' } },
+                                header: {
+                                    type: 'box', layout: 'vertical', paddingAll: 'lg',
+                                    contents: [
+                                        { type: 'text', text: '✂️', size: '3xl', align: 'center' },
+                                        { type: 'text', text: 'สมัครเป็นช่างตัด', weight: 'bold', size: 'lg', color: '#FFFFFF', align: 'center', margin: 'sm' },
+                                    ]
+                                },
+                                body: {
+                                    type: 'box', layout: 'vertical',
+                                    contents: [
+                                        { type: 'text', text: 'ลงทะเบียนเพื่อรับงานตัดชุดจาก Razaan', wrap: true, color: '#666666', align: 'center' },
+                                        { type: 'text', text: 'หลังลงทะเบียน รอ Admin อนุมัติ', size: 'sm', color: '#9CA3AF', align: 'center', margin: 'md' },
+                                    ]
+                                },
+                                footer: {
+                                    type: 'box', layout: 'vertical',
+                                    contents: [
+                                        { type: 'button', style: 'primary', color: '#2563EB', action: { type: 'uri', label: 'ลงทะเบียนช่าง', uri: registerUrl } }
+                                    ]
+                                }
                             }
                         }
-                    }
-                ]);
+                    ]);
+                } else {
+                    // ลูกค้าปกติ
+                    const profile = await getProfile(userId);
+                    const params = new URLSearchParams({
+                        lineUserId: userId,
+                        displayName: profile.displayName || '',
+                        pictureUrl: profile.pictureUrl || ''
+                    });
+                    const registerUrl = `${APP_URL}/register?${params.toString()}`;
+
+                    await replyMessage(event.replyToken, [
+                        {
+                            type: 'flex',
+                            altText: 'ลงทะเบียนตัดชุด Razaan',
+                            contents: {
+                                type: 'bubble',
+                                body: {
+                                    type: 'box',
+                                    layout: 'vertical',
+                                    contents: [
+                                        { type: 'text', text: '✂️ ตัดชุด Razaan', weight: 'bold', size: 'xl', color: '#6B21A8' },
+                                        { type: 'text', text: 'กรุณากรอกข้อมูลเพื่อเริ่มต้นตัดชุดค่ะ', margin: 'md', wrap: true, color: '#666666' }
+                                    ]
+                                },
+                                footer: {
+                                    type: 'box',
+                                    layout: 'vertical',
+                                    contents: [
+                                        {
+                                            type: 'button',
+                                            style: 'primary',
+                                            color: '#6B21A8',
+                                            action: { type: 'uri', label: 'ลงทะเบียน', uri: registerUrl }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]);
+                }
             }
         }
 

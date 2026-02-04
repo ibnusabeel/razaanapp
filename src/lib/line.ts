@@ -629,3 +629,164 @@ export async function sendAdminNotification(order: IOrder) {
 
     return successCount > 0;
 }
+
+// 6. Tailor Job Notification (แจ้งงานใหม่ให้ช่าง)
+export async function sendTailorJobNotification(to: string, order: IOrder) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.razaan.co';
+    const orderUrl = `${appUrl}/tailor/orders/${order._id}`;
+
+    const measurements = order.measurements || {};
+    const measurementText = [
+        measurements.shoulder ? `ไหล่ ${measurements.shoulder}"` : '',
+        measurements.chest ? `อก ${measurements.chest}"` : '',
+        measurements.waist ? `เอว ${measurements.waist}"` : '',
+        measurements.hips ? `สะโพก ${measurements.hips}"` : '',
+        measurements.totalLength ? `ยาว ${measurements.totalLength}"` : '',
+    ].filter(Boolean).join(' | ') || 'ไม่ระบุ';
+
+    const flexMessage = {
+        type: 'flex',
+        altText: `✂️ งานใหม่: ${order.dressName}`,
+        contents: {
+            type: 'bubble',
+            size: 'giga',
+            styles: {
+                header: { backgroundColor: '#3B82F6' },
+                body: { backgroundColor: '#EFF6FF' },
+            },
+            header: {
+                type: 'box',
+                layout: 'vertical',
+                paddingAll: 'xl',
+                contents: [
+                    { type: 'text', text: '✂️', size: '4xl', align: 'center' },
+                    { type: 'text', text: 'งานตัดชุดใหม่!', weight: 'bold', size: 'xxl', color: '#FFFFFF', align: 'center', margin: 'md' },
+                    { type: 'text', text: order.orderNumber || 'N/A', size: 'sm', color: '#ffffffcc', align: 'center', margin: 'xs' },
+                ],
+            },
+            body: {
+                type: 'box',
+                layout: 'vertical',
+                paddingAll: 'lg',
+                spacing: 'lg',
+                contents: [
+                    // Product Info
+                    {
+                        type: 'box', layout: 'vertical',
+                        backgroundColor: '#FFFFFF',
+                        cornerRadius: 'lg',
+                        paddingAll: 'lg',
+                        contents: [
+                            { type: 'text', text: '👗 รายละเอียดชุด', size: 'xs', color: '#9CA3AF', weight: 'bold' },
+                            { type: 'text', text: order.dressName, size: 'xl', weight: 'bold', color: '#1F2937', margin: 'xs' },
+                            {
+                                type: 'box', layout: 'horizontal', margin: 'md',
+                                contents: [
+                                    { type: 'text', text: `🎨 ${order.color || '-'}`, size: 'sm', color: '#6B7280', flex: 1 },
+                                    { type: 'text', text: `📏 ${order.size || '-'}`, size: 'sm', color: '#6B7280', flex: 1 },
+                                ]
+                            },
+                        ]
+                    },
+                    // Measurements
+                    {
+                        type: 'box', layout: 'vertical',
+                        backgroundColor: '#FFFFFF',
+                        cornerRadius: 'lg',
+                        paddingAll: 'lg',
+                        contents: [
+                            { type: 'text', text: '📐 สัดส่วน', size: 'xs', color: '#9CA3AF', weight: 'bold' },
+                            { type: 'text', text: measurementText, size: 'md', color: '#1F2937', wrap: true, margin: 'xs' },
+                        ]
+                    },
+                    // Notes
+                    ...(order.notes ? [{
+                        type: 'box' as const, layout: 'vertical' as const,
+                        backgroundColor: '#FEF2F2',
+                        cornerRadius: 'lg',
+                        paddingAll: 'lg',
+                        contents: [
+                            { type: 'text' as const, text: '⚠️ หมายเหตุสำคัญ', size: 'xs' as const, color: '#DC2626', weight: 'bold' as const },
+                            { type: 'text' as const, text: order.notes, size: 'md' as const, color: '#DC2626', wrap: true, margin: 'xs' },
+                        ]
+                    }] : []),
+                ],
+            },
+            footer: {
+                type: 'box',
+                layout: 'vertical',
+                paddingAll: 'md',
+                spacing: 'sm',
+                contents: [
+                    {
+                        type: 'button',
+                        style: 'primary',
+                        color: '#2563EB',
+                        height: 'md',
+                        action: { type: 'uri', label: '📋 ดูรายละเอียด / อัปเดตสถานะ', uri: orderUrl },
+                    },
+                    { type: 'text', text: '💙 Razaan - ขอบคุณที่ร่วมงานค่ะ', size: 'xxs', color: '#9CA3AF', align: 'center', margin: 'sm' },
+                ],
+            },
+        },
+    };
+
+    return await pushMessage(to, [flexMessage]);
+}
+
+// 7. Tailor Status Update (แจ้ง Admin เมื่อช่างอัปเดตสถานะ)
+export async function sendTailorStatusUpdate(order: IOrder, tailorStatus: string) {
+    if (LINE_ADMIN_USER_IDS.length === 0) {
+        console.log('⚠️ No LINE_ADMIN_USER_IDS configured');
+        return false;
+    }
+
+    const statusMap: Record<string, { label: string; color: string; icon: string }> = {
+        pending: { label: 'รอดำเนินการ', color: '#9CA3AF', icon: '⏳' },
+        cutting: { label: 'กำลังตัดผ้า', color: '#3B82F6', icon: '✂️' },
+        sewing: { label: 'กำลังเย็บ', color: '#8B5CF6', icon: '🧵' },
+        finishing: { label: 'ตกแต่ง/เก็บงาน', color: '#EC4899', icon: '✨' },
+        done: { label: 'เสร็จแล้ว!', color: '#10B981', icon: '✅' },
+        delivered: { label: 'ส่งมอบแล้ว', color: '#059669', icon: '📦' },
+    };
+
+    const info = statusMap[tailorStatus] || { label: tailorStatus, color: '#6B7280', icon: '📋' };
+
+    const flexMessage = {
+        type: 'flex',
+        altText: `${info.icon} ช่างอัปเดต: ${info.label}`,
+        contents: {
+            type: 'bubble',
+            size: 'kilo',
+            styles: {
+                header: { backgroundColor: info.color },
+            },
+            header: {
+                type: 'box',
+                layout: 'vertical',
+                paddingAll: 'lg',
+                contents: [
+                    { type: 'text', text: `${info.icon} ${info.label}`, weight: 'bold', size: 'lg', color: '#FFFFFF', align: 'center' },
+                ],
+            },
+            body: {
+                type: 'box',
+                layout: 'vertical',
+                paddingAll: 'lg',
+                spacing: 'sm',
+                contents: [
+                    { type: 'text', text: order.dressName, weight: 'bold', size: 'md', color: '#1F2937' },
+                    { type: 'text', text: `ลูกค้า: ${order.customerName}`, size: 'sm', color: '#6B7280' },
+                    { type: 'text', text: `ออเดอร์: ${order.orderNumber || 'N/A'}`, size: 'sm', color: '#6B7280' },
+                    ...(order.tailorNotes ? [{ type: 'text' as const, text: `📝 ${order.tailorNotes}`, size: 'sm' as const, color: '#DC2626', wrap: true, margin: 'md' }] : []),
+                ],
+            },
+        },
+    };
+
+    const results = await Promise.all(
+        LINE_ADMIN_USER_IDS.map(adminId => pushMessage(adminId.trim(), [flexMessage]))
+    );
+
+    return results.some(Boolean);
+}

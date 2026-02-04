@@ -7,7 +7,9 @@ export interface IUser extends Document {
     realName: string; // ชื่อจริง
     phone: string; // เบอร์โทร
     address: string; // ที่อยู่
-    role: 'customer' | 'admin';
+    role: 'customer' | 'admin' | 'tailor'; // เพิ่ม role ช่างตัด
+    isActive: boolean; // สถานะใช้งาน (สำหรับช่าง)
+    specialty?: string; // ความชำนาญ (สำหรับช่าง)
     measurements?: {
         shoulder: number;
         chest: number;
@@ -48,7 +50,7 @@ const UserSchema = new Schema<IUser>(
             type: String,
             required: true,
             trim: true,
-            index: true, // เพื่อให้ค้นหาลูกค้าจากเบอร์โทรได้ง่าย
+            index: true,
         },
         address: {
             type: String,
@@ -56,8 +58,16 @@ const UserSchema = new Schema<IUser>(
         },
         role: {
             type: String,
-            enum: ['customer', 'admin'],
+            enum: ['customer', 'admin', 'tailor'],
             default: 'customer',
+        },
+        isActive: {
+            type: Boolean,
+            default: true,
+        },
+        specialty: {
+            type: String,
+            default: '',
         },
         // เก็บไซส์ล่าสุดของลูกค้า
         measurements: {
@@ -76,6 +86,9 @@ const UserSchema = new Schema<IUser>(
         timestamps: true,
     }
 );
+
+// Index สำหรับค้นหาช่าง
+UserSchema.index({ role: 1, isActive: 1 });
 
 const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
 

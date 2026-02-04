@@ -5,11 +5,11 @@ export interface IOrder extends Document {
   // ข้อมูลลูกค้า
   customerName: string;
   phone: string;
-  customer?: Schema.Types.ObjectId; // Link to User model
-  lineUserId?: string; // LINE User ID (redundant but useful for direct access)
+  customer?: Schema.Types.ObjectId;
+  lineUserId?: string;
 
   // ข้อมูลคำสั่งซื้อ
-  orderNumber: string; // เลข Order เช่น ORD-6802-001
+  orderNumber: string;
   orderDate: Date;
   dressName: string;
   color: string;
@@ -17,20 +17,27 @@ export interface IOrder extends Document {
   price: number;
   deposit: number;
   balance: number;
-  points: 'give' | 'no'; // ให้/ไม่ให้ แต้ม
+  points: 'give' | 'no';
   status: 'pending' | 'confirmed' | 'producing' | 'qc' | 'packing' | 'ready_to_ship' | 'completed' | 'cancelled';
+
+  // ข้อมูลช่างตัด
+  tailorId?: Schema.Types.ObjectId; // ช่างที่รับงาน
+  tailorStatus?: 'pending' | 'cutting' | 'sewing' | 'finishing' | 'done' | 'delivered'; // สถานะงานของช่าง
+  tailorAssignedAt?: Date; // วันที่มอบหมายงาน
+  tailorCompletedAt?: Date; // วันที่ช่างทำเสร็จ
+  tailorNotes?: string; // หมายเหตุจากช่าง
 
   // สัดส่วน (Measurements)
   measurements: {
-    shoulder: number;      // ไหล่
-    chest: number;         // รอบอก
-    waist: number;         // เอว
-    armhole: number;       // วงแขน
-    sleeveLength: number;  // ยาวแขน
-    wrist: number;         // รอบข้อมือ
-    upperArm: number;      // ต้นแขน
-    hips: number;          // สะโพก (วัดพอดี)
-    totalLength: number;   // ความยาวชุด
+    shoulder: number;
+    chest: number;
+    waist: number;
+    armhole: number;
+    sleeveLength: number;
+    wrist: number;
+    upperArm: number;
+    hips: number;
+    totalLength: number;
   };
 
   // ข้อมูลการจัดส่ง
@@ -112,17 +119,38 @@ const OrderSchema = new Schema<IOrder>(
       default: 'pending',
     },
 
-    // สัดส่วน (Measurements) - ค่าเป็นนิ้วหรือเซนติเมตร
+    // ข้อมูลช่างตัด
+    tailorId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    tailorStatus: {
+      type: String,
+      enum: ['pending', 'cutting', 'sewing', 'finishing', 'done', 'delivered'],
+      default: 'pending',
+    },
+    tailorAssignedAt: {
+      type: Date,
+    },
+    tailorCompletedAt: {
+      type: Date,
+    },
+    tailorNotes: {
+      type: String,
+      default: '',
+    },
+
+    // สัดส่วน (Measurements)
     measurements: {
-      shoulder: { type: Number, default: 0 },      // ไหล่
-      chest: { type: Number, default: 0 },         // รอบอก
-      waist: { type: Number, default: 0 },         // เอว
-      armhole: { type: Number, default: 0 },       // วงแขน
-      sleeveLength: { type: Number, default: 0 },  // ยาวแขน
-      wrist: { type: Number, default: 0 },         // รอบข้อมือ
-      upperArm: { type: Number, default: 0 },      // ต้นแขน
-      hips: { type: Number, default: 0 },          // สะโพก (วัดพอดี)
-      totalLength: { type: Number, default: 0 },   // ความยาวชุด
+      shoulder: { type: Number, default: 0 },
+      chest: { type: Number, default: 0 },
+      waist: { type: Number, default: 0 },
+      armhole: { type: Number, default: 0 },
+      sleeveLength: { type: Number, default: 0 },
+      wrist: { type: Number, default: 0 },
+      upperArm: { type: Number, default: 0 },
+      hips: { type: Number, default: 0 },
+      totalLength: { type: Number, default: 0 },
     },
 
     // ข้อมูลการจัดส่ง
@@ -138,15 +166,15 @@ const OrderSchema = new Schema<IOrder>(
     },
   },
   {
-    timestamps: true, // เพิ่ม createdAt และ updatedAt อัตโนมัติ
+    timestamps: true,
   }
 );
 
-// สร้าง Index สำหรับการค้นหา
+// สร้าง Index
 OrderSchema.index({ customerName: 'text', phone: 'text' });
 OrderSchema.index({ orderDate: -1 });
+OrderSchema.index({ tailorId: 1, tailorStatus: 1 }); // Index สำหรับค้นหางานของช่าง
 
-// Export Model - ป้องกัน re-compile ใน development mode
 const Order: Model<IOrder> = mongoose.models.Order || mongoose.model<IOrder>('Order', OrderSchema);
 
 export default Order;
