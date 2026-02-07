@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
         }
 
         // ดึงงานที่มอบหมายให้ช่างคนนี้
-        const orders = await Order.find({ tailorId: tailor._id })
+        const orders = await Order.find({ tailorId: tailor._id } as any)
             .sort({ tailorAssignedAt: -1 })
             .lean();
 
