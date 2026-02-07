@@ -105,8 +105,8 @@ export default function TailorMyJobsPage() {
                     <button
                         onClick={() => setFilter('active')}
                         className={`p-4 rounded-2xl text-center transition-all ${filter === 'active'
-                                ? 'bg-blue-500 text-white shadow-lg scale-105'
-                                : 'bg-white text-slate-600'
+                            ? 'bg-blue-500 text-white shadow-lg scale-105'
+                            : 'bg-white text-slate-600'
                             }`}
                     >
                         <p className="text-3xl font-bold">{activeOrders.length}</p>
@@ -115,8 +115,8 @@ export default function TailorMyJobsPage() {
                     <button
                         onClick={() => setFilter('done')}
                         className={`p-4 rounded-2xl text-center transition-all ${filter === 'done'
-                                ? 'bg-green-500 text-white shadow-lg scale-105'
-                                : 'bg-white text-slate-600'
+                            ? 'bg-green-500 text-white shadow-lg scale-105'
+                            : 'bg-white text-slate-600'
                             }`}
                     >
                         <p className="text-3xl font-bold">{completedOrders.length}</p>
@@ -136,7 +136,7 @@ export default function TailorMyJobsPage() {
                     <div className="space-y-3">
                         {displayedOrders.map((order) => {
                             const status = statusLabels[order.tailorStatus || 'pending'] || statusLabels.pending;
-                            const measurements = order.measurements || {};
+                            const measurements = (order.measurements || {}) as any;
                             const measureText = [
                                 measurements.shoulder && `ไหล่ ${measurements.shoulder}"`,
                                 measurements.chest && `อก ${measurements.chest}"`,
