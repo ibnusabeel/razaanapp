@@ -9,13 +9,17 @@ interface Props {
 
 /**
  * PUT /api/orders/[id]/tailor-status
- * ช่างอัปเดตสถานะงาน
+ * ช่างหรือ Admin อัปเดตสถานะงานช่าง
  */
 export async function PUT(request: NextRequest, { params }: Props) {
     try {
         await connectDB();
         const { id } = await params;
-        const { status, notes, lineUserId } = await request.json();
+        const body = await request.json();
+
+        // รับทั้ง status และ tailorStatus
+        const status = body.tailorStatus || body.status;
+        const notes = body.tailorNotes || body.notes;
 
         const order = await Order.findById(id).populate('tailorId');
         if (!order) {
@@ -23,9 +27,10 @@ export async function PUT(request: NextRequest, { params }: Props) {
         }
 
         // ตรวจสอบว่าเป็นช่างที่รับงานนี้หรือไม่ (ถ้ามี lineUserId)
-        if (lineUserId && order.tailorId) {
+        // ถ้าไม่ส่ง lineUserId มา = Admin ทำแทน (bypass check)
+        if (body.lineUserId && order.tailorId) {
             const tailor = order.tailorId as any;
-            if (tailor.lineUserId !== lineUserId) {
+            if (tailor.lineUserId !== body.lineUserId) {
                 return NextResponse.json({ success: false, error: 'คุณไม่ใช่ช่างที่รับงานนี้' }, { status: 403 });
             }
         }
@@ -37,7 +42,7 @@ export async function PUT(request: NextRequest, { params }: Props) {
         }
 
         order.tailorStatus = status;
-        if (notes) order.tailorNotes = notes;
+        if (notes !== undefined) order.tailorNotes = notes;
         if (status === 'done') order.tailorCompletedAt = new Date();
 
         // อัปเดตสถานะหลักตามสถานะช่าง
@@ -50,7 +55,12 @@ export async function PUT(request: NextRequest, { params }: Props) {
         await order.save();
 
         // แจ้ง admin (ส่งผ่าน sendTailorStatusUpdate)
-        await sendTailorStatusUpdate(order, status);
+        try {
+            await sendTailorStatusUpdate(order, status);
+        } catch (lineError) {
+            console.error('Error sending LINE notification:', lineError);
+            // ไม่ fail การ update ถ้า LINE ส่งไม่ได้
+        }
 
         return NextResponse.json({
             success: true,

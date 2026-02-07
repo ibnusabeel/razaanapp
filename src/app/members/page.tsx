@@ -118,7 +118,10 @@ function MemberCard({ member }: { member: Member }) {
     });
 
     return (
-        <div className="bg-white rounded-2xl border-2 border-emerald-50 p-4 hover:shadow-lg hover:shadow-emerald-100 transition-all hover:border-emerald-200">
+        <Link
+            href={`/members/${member._id}`}
+            className="bg-white rounded-2xl border-2 border-emerald-50 p-4 hover:shadow-lg hover:shadow-emerald-100 transition-all hover:border-emerald-200 block"
+        >
             <div className="flex items-start gap-4">
                 {/* Avatar */}
                 <div className="flex-shrink-0">
@@ -161,6 +164,6 @@ function MemberCard({ member }: { member: Member }) {
                     <p className="text-xs text-slate-400">{createdDate}</p>
                 </div>
             </div>
-        </div>
+        </Link>
     );
 }

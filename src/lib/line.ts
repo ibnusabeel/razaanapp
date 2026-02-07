@@ -670,6 +670,17 @@ export async function sendTailorJobNotification(to: string, order: IOrder) {
                 paddingAll: 'lg',
                 spacing: 'lg',
                 contents: [
+                    // Customer Info - NEW!
+                    {
+                        type: 'box', layout: 'vertical',
+                        backgroundColor: '#DBEAFE',
+                        cornerRadius: 'lg',
+                        paddingAll: 'lg',
+                        contents: [
+                            { type: 'text', text: '👤 ลูกค้า', size: 'xs', color: '#1D4ED8', weight: 'bold' },
+                            { type: 'text', text: order.customerName, size: 'lg', weight: 'bold', color: '#1E40AF', margin: 'xs' },
+                        ]
+                    },
                     // Product Info
                     {
                         type: 'box', layout: 'vertical',
