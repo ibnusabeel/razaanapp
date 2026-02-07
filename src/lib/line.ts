@@ -746,7 +746,7 @@ export async function sendTailorJobNotification(to: string, order: IOrder) {
 }
 
 // 7. Tailor Status Update (แจ้ง Admin เมื่อช่างอัปเดตสถานะ)
-export async function sendTailorStatusUpdate(order: IOrder, tailorStatus: string) {
+export async function sendTailorStatusUpdate(order: IOrder, tailorStatus: string, tailorName?: string) {
     if (LINE_ADMIN_USER_IDS.length === 0) {
         console.log('⚠️ No LINE_ADMIN_USER_IDS configured');
         return false;
@@ -789,7 +789,8 @@ export async function sendTailorStatusUpdate(order: IOrder, tailorStatus: string
                     { type: 'text', text: order.dressName, weight: 'bold', size: 'md', color: '#1F2937' },
                     { type: 'text', text: `ลูกค้า: ${order.customerName}`, size: 'sm', color: '#6B7280' },
                     { type: 'text', text: `ออเดอร์: ${order.orderNumber || 'N/A'}`, size: 'sm', color: '#6B7280' },
-                    ...(order.tailorNotes ? [{ type: 'text' as const, text: `📝 ${order.tailorNotes}`, size: 'sm' as const, color: '#DC2626', wrap: true, margin: 'md' }] : []),
+                    ...(tailorName ? [{ type: 'text' as const, text: `👤 ช่าง: ${tailorName}`, size: 'sm' as const, color: '#3B82F6', weight: 'bold' as const, margin: 'md' as const }] : []),
+                    ...(order.tailorNotes ? [{ type: 'text' as const, text: `📝 ${order.tailorNotes}`, size: 'sm' as const, color: '#DC2626', wrap: true, margin: 'md' as const }] : []),
                 ],
             },
         },
@@ -801,3 +802,90 @@ export async function sendTailorStatusUpdate(order: IOrder, tailorStatus: string
 
     return results.some(Boolean);
 }
+
+// 8. ส่ง FlexMessage แจ้งลูกค้าว่าออเดอร์เสร็จแล้ว พร้อมปุ่ม "รับของแล้ว"
+export async function sendOrderCompletionToCustomer(order: IOrder) {
+    if (!order.lineUserId) {
+        console.log('⚠️ No lineUserId for customer notification');
+        return false;
+    }
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.razaan.co';
+    const confirmUrl = `${appUrl}/api/orders/${order._id}/confirm-received?token=${order._id}`;
+
+    const flexMessage = {
+        type: 'flex',
+        altText: `✅ ออเดอร์ของคุณเสร็จแล้ว!`,
+        contents: {
+            type: 'bubble',
+            size: 'mega',
+            styles: {
+                header: { backgroundColor: '#10B981' },
+            },
+            header: {
+                type: 'box',
+                layout: 'vertical',
+                paddingAll: 'lg',
+                contents: [
+                    { type: 'text', text: '✅ ออเดอร์เสร็จแล้ว!', weight: 'bold', size: 'xl', color: '#FFFFFF', align: 'center' },
+                    { type: 'text', text: 'พร้อมส่งมอบให้คุณค่ะ', size: 'sm', color: '#D1FAE5', align: 'center', margin: 'sm' },
+                ],
+            },
+            body: {
+                type: 'box',
+                layout: 'vertical',
+                paddingAll: 'lg',
+                spacing: 'md',
+                contents: [
+                    // Order Info
+                    {
+                        type: 'box',
+                        layout: 'vertical',
+                        backgroundColor: '#F0FDF4',
+                        paddingAll: 'md',
+                        cornerRadius: 'lg',
+                        contents: [
+                            { type: 'text', text: order.dressName, weight: 'bold', size: 'lg', color: '#1F2937' },
+                            { type: 'text', text: `ออเดอร์: ${order.orderNumber || 'N/A'}`, size: 'sm', color: '#6B7280', margin: 'sm' },
+                            ...(order.color ? [{ type: 'text' as const, text: `🎨 สี: ${order.color}`, size: 'sm' as const, color: '#6B7280' }] : []),
+                            ...(order.size ? [{ type: 'text' as const, text: `📏 ไซส์: ${order.size}`, size: 'sm' as const, color: '#6B7280' }] : []),
+                        ],
+                    },
+                    // Info Text
+                    {
+                        type: 'box',
+                        layout: 'vertical',
+                        contents: [
+                            { type: 'text', text: '📞 ติดต่อรับของ:', weight: 'bold', size: 'md', color: '#1F2937' },
+                            { type: 'text', text: 'กรุณาติดต่อร้านเพื่อนัดรับสินค้า', size: 'sm', color: '#6B7280', wrap: true },
+                            { type: 'text', text: 'หรือกดปุ่มด้านล่างเมื่อได้รับของแล้ว', size: 'sm', color: '#6B7280', wrap: true, margin: 'sm' },
+                        ],
+                    },
+                ],
+            },
+            footer: {
+                type: 'box',
+                layout: 'vertical',
+                paddingAll: 'lg',
+                spacing: 'sm',
+                contents: [
+                    {
+                        type: 'button',
+                        style: 'primary',
+                        color: '#10B981',
+                        height: 'md',
+                        action: {
+                            type: 'uri',
+                            label: '✓ รับของแล้ว',
+                            uri: confirmUrl
+                        },
+                    },
+                    { type: 'text', text: '💚 ขอบคุณที่ใช้บริการ Razaan', size: 'xxs', color: '#9CA3AF', align: 'center', margin: 'md' },
+                ],
+            },
+        },
+    };
+
+    return await pushMessage(order.lineUserId, [flexMessage]);
+}
+

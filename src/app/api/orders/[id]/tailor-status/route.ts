@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Order from '@/models/Order';
-import { sendTailorStatusUpdate } from '@/lib/line';
+import { sendTailorStatusUpdate, sendOrderCompletionToCustomer } from '@/lib/line';
 
 interface Props {
     params: Promise<{ id: string }>;
@@ -26,10 +26,13 @@ export async function PUT(request: NextRequest, { params }: Props) {
             return NextResponse.json({ success: false, error: 'ไม่พบออเดอร์' }, { status: 404 });
         }
 
+        // ดึงชื่อช่าง
+        const tailor = order.tailorId as any;
+        const tailorName = tailor?.realName || tailor?.displayName || '';
+
         // ตรวจสอบว่าเป็นช่างที่รับงานนี้หรือไม่ (ถ้ามี lineUserId)
         // ถ้าไม่ส่ง lineUserId มา = Admin ทำแทน (bypass check)
         if (body.lineUserId && order.tailorId) {
-            const tailor = order.tailorId as any;
             if (tailor.lineUserId !== body.lineUserId) {
                 return NextResponse.json({ success: false, error: 'คุณไม่ใช่ช่างที่รับงานนี้' }, { status: 403 });
             }
@@ -54,12 +57,20 @@ export async function PUT(request: NextRequest, { params }: Props) {
 
         await order.save();
 
-        // แจ้ง admin (ส่งผ่าน sendTailorStatusUpdate)
+        // แจ้ง admin (ส่งผ่าน sendTailorStatusUpdate พร้อมชื่อช่าง)
         try {
-            await sendTailorStatusUpdate(order, status);
+            await sendTailorStatusUpdate(order, status, tailorName);
         } catch (lineError) {
-            console.error('Error sending LINE notification:', lineError);
-            // ไม่ fail การ update ถ้า LINE ส่งไม่ได้
+            console.error('Error sending LINE notification to admin:', lineError);
+        }
+
+        // ถ้างานเสร็จ → แจ้งลูกค้าให้กดยืนยันรับของ
+        if (status === 'done' && order.lineUserId) {
+            try {
+                await sendOrderCompletionToCustomer(order);
+            } catch (lineError) {
+                console.error('Error sending LINE notification to customer:', lineError);
+            }
         }
 
         return NextResponse.json({
@@ -72,3 +83,4 @@ export async function PUT(request: NextRequest, { params }: Props) {
         return NextResponse.json({ success: false, error: 'Failed to update status' }, { status: 500 });
     }
 }
+

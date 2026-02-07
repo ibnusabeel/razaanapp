@@ -44,6 +44,9 @@ export interface IOrder extends Document {
   deliveryAddress: string;
   notes: string;
 
+  // การยืนยันจากลูกค้า
+  customerConfirmedAt?: Date;
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -163,6 +166,11 @@ const OrderSchema = new Schema<IOrder>(
       type: String,
       trim: true,
       default: '',
+    },
+
+    // การยืนยันจากลูกค้า
+    customerConfirmedAt: {
+      type: Date,
     },
   },
   {
