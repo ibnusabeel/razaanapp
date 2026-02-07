@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Users, Plus, Trash2, Search, ToggleLeft, ToggleRight, Scissors, Package } from 'lucide-react';
+import Link from 'next/link';
+import { Users, Plus, Trash2, Search, ToggleLeft, ToggleRight, Scissors, Package, Eye } from 'lucide-react';
 import AdminLayout from '@/components/AdminLayout';
 
 interface Tailor {
@@ -169,14 +170,14 @@ export default function TailorsPage() {
                                 {/* Actions */}
                                 <div className="flex flex-col gap-2">
                                     <button
-                                        onClick={() => toggleActive(tailor._id, tailor.isActive)}
+                                        onClick={(e) => { e.stopPropagation(); toggleActive(tailor._id, tailor.isActive); }}
                                         className={`p-2 rounded-lg transition-colors ${tailor.isActive ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}
                                         title={tailor.isActive ? 'ใช้งานอยู่' : 'ปิดใช้งาน'}
                                     >
                                         {tailor.isActive ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
                                     </button>
                                     <button
-                                        onClick={() => removeTailor(tailor._id, tailor.realName)}
+                                        onClick={(e) => { e.stopPropagation(); removeTailor(tailor._id, tailor.realName); }}
                                         className="p-2 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
                                         title="ลบช่าง"
                                     >
@@ -185,11 +186,17 @@ export default function TailorsPage() {
                                 </div>
                             </div>
 
-                            {/* Status Badge */}
-                            <div className="mt-4 pt-4 border-t border-slate-100 flex items-center gap-2">
-                                <Package className="w-4 h-4 text-slate-400" />
-                                <span className="text-sm text-slate-500">รอดูจำนวนงาน...</span>
-                            </div>
+                            {/* View Jobs Link */}
+                            <Link
+                                href={`/tailors/${tailor._id}`}
+                                className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between gap-2 hover:bg-slate-50 -mx-5 -mb-5 px-5 py-3 rounded-b-2xl transition-colors"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Package className="w-4 h-4 text-blue-500" />
+                                    <span className="text-sm text-slate-600 font-medium">ดูงานทั้งหมด</span>
+                                </div>
+                                <Eye className="w-4 h-4 text-blue-500" />
+                            </Link>
                         </div>
                     ))}
                 </div>
