@@ -1,4 +1,8 @@
 import mongoose from 'mongoose';
+import dns from 'dns';
+
+// Fix DNS resolution issue for MongoDB Atlas on Windows
+dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
 
 const MONGODB_URI = process.env.MONGODB_URI!;
 

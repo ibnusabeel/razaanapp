@@ -1,29 +1,82 @@
+'use client';
+
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { Phone, MapPin, FileText, Ruler, Palette, Tag, CreditCard, Edit } from 'lucide-react';
-import connectDB from '@/lib/mongodb';
-import Order from '@/models/Order';
+import { useEffect, useState, use } from 'react';
+import { Phone, MapPin, Edit, Loader2 } from 'lucide-react';
 import StatusSelector from '@/components/StatusSelector';
 import AdminLayout from '@/components/AdminLayout';
+import TailorAssignment from '@/components/TailorAssignment';
 
 interface PageProps {
     params: Promise<{ id: string }>;
 }
 
-async function getOrder(id: string) {
-    try {
-        await connectDB();
-        const order = await Order.findById(id).lean();
-        return order;
-    } catch (error) {
-        console.error('Error fetching order:', error);
-        return null;
-    }
+interface Order {
+    _id: string;
+    orderNumber?: string;
+    customerName: string;
+    phone: string;
+    orderDate: string;
+    dressName: string;
+    color: string;
+    size: string;
+    price: number;
+    deposit: number;
+    balance: number;
+    points: 'give' | 'no';
+    status: string;
+    tailorId?: string;
+    tailorStatus?: string;
+    measurements: {
+        shoulder: number;
+        chest: number;
+        waist: number;
+        armhole: number;
+        sleeveLength: number;
+        wrist: number;
+        upperArm: number;
+        hips: number;
+        totalLength: number;
+    };
+    notes?: string;
+    deliveryAddress?: string;
 }
 
-export default async function OrderDetailPage({ params }: PageProps) {
-    const { id } = await params;
-    const order = await getOrder(id);
+export default function OrderDetailPage({ params }: PageProps) {
+    const { id } = use(params);
+    const [order, setOrder] = useState<Order | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    const fetchOrder = async () => {
+        try {
+            const res = await fetch(`/api/orders/${id}`);
+            const data = await res.json();
+            if (data.success) {
+                setOrder(data.data);
+            } else {
+                notFound();
+            }
+        } catch {
+            notFound();
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchOrder();
+    }, [id]);
+
+    if (loading) {
+        return (
+            <AdminLayout title="กำลังโหลด..." subtitle="">
+                <div className="flex items-center justify-center py-20">
+                    <Loader2 className="w-10 h-10 text-purple-500 animate-spin" />
+                </div>
+            </AdminLayout>
+        );
+    }
 
     if (!order) {
         notFound();
@@ -51,6 +104,14 @@ export default async function OrderDetailPage({ params }: PageProps) {
             }
         >
             <div className="max-w-3xl mx-auto space-y-6">
+                {/* Tailor Assignment - NEW! */}
+                <TailorAssignment
+                    orderId={id}
+                    currentTailorId={order.tailorId}
+                    currentTailorStatus={order.tailorStatus}
+                    onAssigned={fetchOrder}
+                />
+
                 {/* Customer Info */}
                 <Section title="ข้อมูลลูกค้า" color="from-violet-500 to-purple-600">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -63,7 +124,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
                 <Section title="รายละเอียดสินค้า" color="from-pink-500 to-rose-600">
                     <InfoItem label="ชื่อชุด" value={order.dressName} large />
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
-                        <InfoItem label="สี" value={order.color || '-'} icon={<Palette className="w-3 h-3" />} />
+                        <InfoItem label="สี" value={order.color || '-'} />
                         <InfoItem label="ไซส์" value={order.size || '-'} />
                         <InfoItem label="แต้ม" value={order.points === 'give' ? '✅ ให้แต้ม' : '❌ ไม่ให้'} />
                     </div>
@@ -90,7 +151,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
                 </Section>
 
                 {/* Measurements */}
-                {order.measurements && Object.values(order.measurements).some((v: any) => v > 0) && (
+                {order.measurements && Object.values(order.measurements).some(v => v > 0) && (
                     <Section title="สัดส่วน (นิ้ว)" color="from-blue-500 to-indigo-600">
                         <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
                             {order.measurements.shoulder > 0 && <MeasureItem label="ไหล่" value={order.measurements.shoulder} />}

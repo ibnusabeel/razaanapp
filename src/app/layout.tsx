@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Noto_Sans_Thai } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
+import PWARegister from "@/components/PWARegister";
 
 // ใช้ฟอนต์ Noto Sans Thai สำหรับรองรับภาษาไทย
 const notoSansThai = Noto_Sans_Thai({
@@ -13,6 +14,15 @@ const notoSansThai = Noto_Sans_Thai({
 export const metadata: Metadata = {
   title: "Razaan Order Management",
   description: "ระบบจัดการคำสั่งซื้อชุด - Razaan Dignity Among Women",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Razaan",
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 // แยก viewport ออกมาตาม Next.js 16+ requirement
@@ -21,6 +31,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   themeColor: "#7c3aed",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -32,11 +43,18 @@ export default function RootLayout({
     <html lang="th">
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Razaan" />
+        <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className={`${notoSansThai.variable} antialiased`}>
         <AuthProvider>
           {children}
         </AuthProvider>
+        <PWARegister />
       </body>
     </html>
   );
