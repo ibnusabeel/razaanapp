@@ -93,8 +93,8 @@ export default function PrintOrderPage({ params }: PageProps) {
                         <button
                             onClick={() => setPrintMode('full')}
                             className={`px-4 py-2 rounded-lg font-medium transition-all ${printMode === 'full'
-                                    ? 'bg-emerald-500 text-white'
-                                    : 'bg-white text-slate-600 hover:bg-slate-50'
+                                ? 'bg-emerald-500 text-white'
+                                : 'bg-white text-slate-600 hover:bg-slate-50'
                                 }`}
                         >
                             📋 ใบงานเต็ม
@@ -102,8 +102,8 @@ export default function PrintOrderPage({ params }: PageProps) {
                         <button
                             onClick={() => setPrintMode('label')}
                             className={`px-4 py-2 rounded-lg font-medium transition-all ${printMode === 'label'
-                                    ? 'bg-blue-500 text-white'
-                                    : 'bg-white text-slate-600 hover:bg-slate-50'
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-white text-slate-600 hover:bg-slate-50'
                                 }`}
                         >
                             🏷️ ป้ายติดชุด
@@ -248,19 +248,16 @@ export default function PrintOrderPage({ params }: PageProps) {
                         </div>
                     </div>
                 ) : (
-                    /* Small Label - For attaching to garment */
-                    <div className="thermal-label">
-                        <div className="flex items-center gap-2">
-                            <img
-                                src={qrApiUrl}
-                                alt="QR"
-                                style={{ width: '60px', height: '60px' }}
-                            />
-                            <div className="flex-1 text-xs">
-                                <p className="font-bold text-sm">{order.orderNumber}</p>
-                                <p>{order.dressName}</p>
-                                <p className="text-gray-600">{order.customerName}</p>
-                            </div>
+                    /* Small Sticker Label 40x20mm - For attaching to garment */
+                    <div className="sticker-label">
+                        <img
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(qrUrl)}`}
+                            alt="QR"
+                            className="sticker-qr"
+                        />
+                        <div className="sticker-info">
+                            <p className="sticker-order">{order.orderNumber}</p>
+                            <p className="sticker-name">{order.dressName}</p>
                         </div>
                     </div>
                 )}
@@ -281,22 +278,57 @@ export default function PrintOrderPage({ params }: PageProps) {
                     .thermal-receipt {
                         width: 72mm;
                         padding: 2mm;
-                        font-family: 'Courier New', monospace;
+                        font-family: 'IBM Plex Sans Thai Looped', sans-serif;
                         font-size: 10px;
                         line-height: 1.3;
                         color: black;
                         background: white;
                     }
                     
-                    .thermal-label {
-                        width: 72mm;
-                        padding: 2mm;
-                        font-family: 'Courier New', monospace;
-                        border: 1px dashed #000;
+                    /* Sticker 40x20mm */
+                    .sticker-label {
+                        width: 40mm;
+                        height: 20mm;
+                        display: flex;
+                        align-items: center;
+                        gap: 2mm;
+                        padding: 1mm;
+                        font-family: 'IBM Plex Sans Thai Looped', sans-serif;
+                        background: white;
+                        border: 0.5px solid #000;
+                        box-sizing: border-box;
+                    }
+                    
+                    .sticker-qr {
+                        width: 16mm !important;
+                        height: 16mm !important;
+                        flex-shrink: 0;
+                    }
+                    
+                    .sticker-info {
+                        flex: 1;
+                        overflow: hidden;
+                        min-width: 0;
+                    }
+                    
+                    .sticker-order {
+                        font-size: 8pt;
+                        font-weight: bold;
+                        margin: 0;
+                        line-height: 1.2;
+                    }
+                    
+                    .sticker-name {
+                        font-size: 6pt;
+                        margin: 0;
+                        line-height: 1.2;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
                     }
                     
                     @page {
-                        size: 80mm auto;
+                        size: auto;
                         margin: 0;
                     }
                 }
@@ -310,18 +342,51 @@ export default function PrintOrderPage({ params }: PageProps) {
                         background: white;
                         box-shadow: 0 4px 20px rgba(0,0,0,0.1);
                         border-radius: 8px;
-                        font-family: 'Courier New', monospace;
+                        font-family: 'IBM Plex Sans Thai Looped', sans-serif;
                     }
                     
-                    .thermal-label {
-                        width: 300px;
+                    /* Preview sticker - scaled up 3x for visibility */
+                    .sticker-label {
+                        width: 160px;
+                        height: 80px;
                         margin: 20px auto;
-                        padding: 15px;
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 4px;
                         background: white;
                         box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-                        border-radius: 8px;
-                        border: 2px dashed #ccc;
-                        font-family: 'Courier New', monospace;
+                        border: 2px dashed #10B981;
+                        border-radius: 4px;
+                        font-family: 'IBM Plex Sans Thai Looped', sans-serif;
+                    }
+                    
+                    .sticker-qr {
+                        width: 64px !important;
+                        height: 64px !important;
+                        flex-shrink: 0;
+                    }
+                    
+                    .sticker-info {
+                        flex: 1;
+                        overflow: hidden;
+                        min-width: 0;
+                    }
+                    
+                    .sticker-order {
+                        font-size: 14px;
+                        font-weight: bold;
+                        margin: 0;
+                        color: #1F2937;
+                    }
+                    
+                    .sticker-name {
+                        font-size: 11px;
+                        margin: 2px 0 0;
+                        color: #6B7280;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
                     }
                 }
             `}</style>

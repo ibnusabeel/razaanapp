@@ -1,12 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Noto_Sans_Thai } from "next/font/google";
+import { IBM_Plex_Sans_Thai_Looped } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import PWARegister from "@/components/PWARegister";
 
-// ใช้ฟอนต์ Noto Sans Thai สำหรับรองรับภาษาไทย
-const notoSansThai = Noto_Sans_Thai({
-  variable: "--font-noto-sans-thai",
+// ใช้ฟอนต์ IBM Plex Sans Thai Looped สำหรับรองรับภาษาไทย
+const ibmPlexSansThai = IBM_Plex_Sans_Thai_Looped({
+  variable: "--font-ibm-plex-thai",
   subsets: ["thai", "latin"],
   weight: ["300", "400", "500", "600", "700"],
 });
@@ -50,7 +50,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Razaan" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body className={`${notoSansThai.variable} antialiased`}>
+      <body className={`${ibmPlexSansThai.variable} antialiased`}>
         <AuthProvider>
           {children}
         </AuthProvider>
