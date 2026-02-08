@@ -3,7 +3,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { useEffect, useState, use } from 'react';
-import { Phone, MapPin, Edit, Loader2 } from 'lucide-react';
+import { Phone, MapPin, Edit, Loader2, Printer } from 'lucide-react';
 import StatusSelector from '@/components/StatusSelector';
 import AdminLayout from '@/components/AdminLayout';
 import TailorAssignment from '@/components/TailorAssignment';
@@ -91,8 +91,15 @@ export default function OrderDetailPage({ params }: PageProps) {
             title={order.orderNumber || `#${id.slice(-6).toUpperCase()}`}
             subtitle={`${order.customerName} • ${orderDate}`}
             actions={
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                     <StatusSelector orderId={id} currentStatus={order.status || 'pending'} />
+                    <Link
+                        href={`/orders/${id}/print`}
+                        className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-emerald-200 text-emerald-600 rounded-xl text-sm font-bold hover:bg-emerald-50"
+                    >
+                        <Printer className="w-4 h-4" />
+                        <span className="hidden sm:inline">พิมพ์</span>
+                    </Link>
                     <Link
                         href={`/orders/${id}/edit`}
                         className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-xl text-sm font-bold hover:from-violet-600 hover:to-purple-700 shadow-lg"
