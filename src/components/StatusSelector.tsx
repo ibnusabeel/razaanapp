@@ -110,17 +110,23 @@ export default function StatusSelector({ orderId, currentStatus }: StatusSelecto
     const [isLoading, setIsLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
     const [mounted, setMounted] = useState(false);
+    const [localStatus, setLocalStatus] = useState(currentStatus);
 
     useEffect(() => {
         setMounted(true);
     }, []);
 
-    const currentIndex = statusOptions.findIndex(opt => opt.value === currentStatus);
+    // Sync with prop changes
+    useEffect(() => {
+        setLocalStatus(currentStatus);
+    }, [currentStatus]);
+
+    const currentIndex = statusOptions.findIndex(opt => opt.value === localStatus);
     const currentOption = statusOptions[currentIndex] || statusOptions[0];
     const Icon = currentOption.icon;
 
     const handleStatusChange = async (newStatus: string) => {
-        if (newStatus === currentStatus) {
+        if (newStatus === localStatus) {
             setIsOpen(false);
             return;
         }
@@ -135,8 +141,12 @@ export default function StatusSelector({ orderId, currentStatus }: StatusSelecto
 
             if (!res.ok) throw new Error('Failed to update status');
 
-            router.refresh();
+            // Update local state immediately
+            setLocalStatus(newStatus);
             setIsOpen(false);
+
+            // Also refresh the page data in background
+            router.refresh();
         } catch (error) {
             console.error('Error updating status:', error);
             alert('ไม่สามารถอัปเดตสถานะได้');
@@ -202,7 +212,7 @@ export default function StatusSelector({ orderId, currentStatus }: StatusSelecto
                             <div className="space-y-2">
                                 {statusOptions.map((option, index) => {
                                     const OptionIcon = option.icon;
-                                    const isActive = currentStatus === option.value;
+                                    const isActive = localStatus === option.value;
                                     const isPassed = index < currentIndex;
 
                                     return (

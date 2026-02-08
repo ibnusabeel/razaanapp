@@ -23,6 +23,12 @@ export default function MembersPage() {
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [mounted, setMounted] = useState(false);
+
+    // Ensure client-side hydration is complete
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const fetchMembers = useCallback(async () => {
         setIsLoading(true);
@@ -46,9 +52,10 @@ export default function MembersPage() {
     }, [searchQuery, page]);
 
     useEffect(() => {
+        if (!mounted) return;
         const timeout = setTimeout(() => fetchMembers(), 300);
         return () => clearTimeout(timeout);
-    }, [fetchMembers]);
+    }, [fetchMembers, mounted]);
 
     return (
         <AdminLayout title="สมาชิก" subtitle={`ลูกค้าทั้งหมด ${total} คน`}>
