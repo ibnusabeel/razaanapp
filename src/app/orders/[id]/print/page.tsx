@@ -165,10 +165,6 @@ export default function PrintOrderPage({ params }: PageProps) {
                                 <span className="font-bold">ลูกค้า:</span>
                                 <span>{order.customerName}</span>
                             </div>
-                            <div className="flex justify-between mb-1">
-                                <span className="font-bold">โทร:</span>
-                                <span>{order.phone}</span>
-                            </div>
                         </div>
 
                         {/* Measurements */}
@@ -251,13 +247,14 @@ export default function PrintOrderPage({ params }: PageProps) {
                     /* Small Sticker Label 40x20mm - For attaching to garment */
                     <div className="sticker-label">
                         <img
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(qrUrl)}`}
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(order.orderNumber)}`}
                             alt="QR"
                             className="sticker-qr"
                         />
                         <div className="sticker-info">
                             <p className="sticker-order">{order.orderNumber}</p>
                             <p className="sticker-name">{order.dressName}</p>
+                            <p className="sticker-customer">{order.customerName}</p>
                         </div>
                     </div>
                 )}
@@ -321,7 +318,17 @@ export default function PrintOrderPage({ params }: PageProps) {
                     .sticker-name {
                         font-size: 6pt;
                         margin: 0;
-                        line-height: 1.2;
+                        line-height: 1.1;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                    }
+                    
+                    .sticker-customer {
+                        font-size: 5pt;
+                        margin: 0;
+                        line-height: 1.1;
+                        color: #666;
                         overflow: hidden;
                         text-overflow: ellipsis;
                         white-space: nowrap;
@@ -382,8 +389,17 @@ export default function PrintOrderPage({ params }: PageProps) {
                     
                     .sticker-name {
                         font-size: 11px;
-                        margin: 2px 0 0;
+                        margin: 1px 0 0;
                         color: #6B7280;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                    }
+                    
+                    .sticker-customer {
+                        font-size: 9px;
+                        margin: 0;
+                        color: #9CA3AF;
                         overflow: hidden;
                         text-overflow: ellipsis;
                         white-space: nowrap;
