@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import {
     Clock,
@@ -108,6 +109,11 @@ export default function StatusSelector({ orderId, currentStatus }: StatusSelecto
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const currentIndex = statusOptions.findIndex(opt => opt.value === currentStatus);
     const currentOption = statusOptions[currentIndex] || statusOptions[0];
@@ -152,21 +158,21 @@ export default function StatusSelector({ orderId, currentStatus }: StatusSelecto
                 <ChevronRight className="w-4 h-4" />
             </button>
 
-            {/* Modal - Bottom sheet on mobile, centered on desktop */}
-            {isOpen && (
-                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm">
+            {/* Modal rendered via Portal */}
+            {mounted && isOpen && createPortal(
+                <div
+                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+                >
                     <div
                         className="absolute inset-0"
                         onClick={() => setIsOpen(false)}
                     />
 
-                    <div className="relative bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-3xl shadow-2xl max-h-[85vh] sm:max-h-[80vh] overflow-hidden animate-slide-up sm:animate-none">
+                    <div className="relative bg-white w-full max-w-md rounded-2xl shadow-2xl max-h-[80vh] overflow-hidden">
                         {/* Header */}
                         <div className="flex items-center justify-between p-4 border-b border-slate-100">
-                            {/* Mobile handle */}
-                            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-slate-300 rounded-full sm:hidden" />
-
-                            <h3 className="text-lg font-bold text-slate-800 mt-2 sm:mt-0">เปลี่ยนสถานะ</h3>
+                            <h3 className="text-lg font-bold text-slate-800">เปลี่ยนสถานะ</h3>
                             <button
                                 onClick={() => setIsOpen(false)}
                                 className="p-2 rounded-full hover:bg-slate-100 transition-colors"
@@ -192,7 +198,7 @@ export default function StatusSelector({ orderId, currentStatus }: StatusSelecto
                         </div>
 
                         {/* Status List */}
-                        <div className="p-3 overflow-y-auto" style={{ maxHeight: 'calc(85vh - 180px)' }}>
+                        <div className="p-3 overflow-y-auto" style={{ maxHeight: 'calc(80vh - 180px)' }}>
                             <div className="space-y-2">
                                 {statusOptions.map((option, index) => {
                                     const OptionIcon = option.icon;
@@ -204,7 +210,7 @@ export default function StatusSelector({ orderId, currentStatus }: StatusSelecto
                                             key={option.value}
                                             onClick={() => handleStatusChange(option.value)}
                                             disabled={isLoading}
-                                            className={`w-full text-left p-4 sm:p-3 rounded-xl flex items-center gap-3 transition-all border-2 active:scale-[0.98] ${isActive
+                                            className={`w-full text-left p-4 rounded-xl flex items-center gap-3 transition-all border-2 active:scale-[0.98] ${isActive
                                                 ? `${option.bgLight} ${option.borderColor} ${option.textColor}`
                                                 : isPassed
                                                     ? 'bg-slate-50 border-slate-100 text-slate-400'
@@ -212,33 +218,33 @@ export default function StatusSelector({ orderId, currentStatus }: StatusSelecto
                                                 }`}
                                         >
                                             {/* Status Icon */}
-                                            <div className={`w-12 h-12 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 ${isActive ? option.color : isPassed ? 'bg-slate-200' : 'bg-slate-100'
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${isActive ? option.color : isPassed ? 'bg-slate-200' : 'bg-slate-100'
                                                 }`}>
-                                                <OptionIcon className={`w-6 h-6 sm:w-5 sm:h-5 ${isActive || isPassed ? 'text-white' : 'text-slate-400'
+                                                <OptionIcon className={`w-5 h-5 ${isActive || isPassed ? 'text-white' : 'text-slate-400'
                                                     }`} />
                                             </div>
 
                                             {/* Label & Description */}
                                             <div className="flex-1 min-w-0">
-                                                <p className={`font-bold text-base sm:text-sm ${isActive ? option.textColor : isPassed ? 'text-slate-400' : 'text-slate-700'
+                                                <p className={`font-bold text-sm ${isActive ? option.textColor : isPassed ? 'text-slate-400' : 'text-slate-700'
                                                     }`}>
                                                     {option.label}
                                                 </p>
-                                                <p className="text-sm sm:text-xs text-slate-400 truncate">
+                                                <p className="text-xs text-slate-400 truncate">
                                                     {option.description}
                                                 </p>
                                             </div>
 
                                             {/* Active Indicator */}
                                             {isActive && (
-                                                <div className={`w-8 h-8 sm:w-6 sm:h-6 rounded-full ${option.color} flex items-center justify-center`}>
-                                                    <CheckCircle className="w-5 h-5 sm:w-4 sm:h-4 text-white" />
+                                                <div className={`w-6 h-6 rounded-full ${option.color} flex items-center justify-center`}>
+                                                    <CheckCircle className="w-4 h-4 text-white" />
                                                 </div>
                                             )}
 
                                             {/* Step Number */}
                                             {!isActive && (
-                                                <span className="text-sm sm:text-xs font-bold text-slate-300 w-6 text-center">
+                                                <span className="text-xs font-bold text-slate-300 w-6 text-center">
                                                     {index + 1}
                                                 </span>
                                             )}
@@ -249,32 +255,15 @@ export default function StatusSelector({ orderId, currentStatus }: StatusSelecto
                         </div>
 
                         {/* Footer */}
-                        <div className="p-4 border-t border-slate-100 bg-slate-50 pb-safe">
+                        <div className="p-4 border-t border-slate-100 bg-slate-50">
                             <p className="text-xs text-slate-500 text-center">
                                 กดเลือกสถานะเพื่ออัปเดตทันที
                             </p>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
-
-            {/* Animation Styles */}
-            <style jsx>{`
-                @keyframes slide-up {
-                    from {
-                        transform: translateY(100%);
-                    }
-                    to {
-                        transform: translateY(0);
-                    }
-                }
-                .animate-slide-up {
-                    animation: slide-up 0.3s ease-out;
-                }
-                .pb-safe {
-                    padding-bottom: max(1rem, env(safe-area-inset-bottom));
-                }
-            `}</style>
         </>
     );
 }
